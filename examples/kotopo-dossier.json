@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "preparation": "manual",
+  "associationName": "KoToPo — association Mille et une langues",
+  "summary": "Espace associatif lyonnais consacré aux langues et aux cultures du monde. La Ville de Lyon présente des cours, des échanges linguistiques, une bibliothèque et une programmation culturelle. Le site fourni pour ce test n'a pas pu être consulté ; la fiche repose principalement sur les pages de la Ville de Lyon.",
+  "summarySourceIds": ["c1000000-0000-4000-8000-000000000002", "c1000000-0000-4000-8000-000000000003"],
+  "identity": {
+    "location": "14 rue René Leynaud, 69001 Lyon",
+    "website": "http://www.kotopo.net/",
+    "activity": "Cours et rencontres linguistiques, bibliothèque, événements culturels",
+    "sourceIds": {
+      "location": ["c1000000-0000-4000-8000-000000000002"],
+      "website": ["c1000000-0000-4000-8000-000000000001", "c1000000-0000-4000-8000-000000000002"],
+      "activity": ["c1000000-0000-4000-8000-000000000002", "c1000000-0000-4000-8000-000000000003"]
+    }
+  },
+  "sources": [
+    {
+      "id": "c1000000-0000-4000-8000-000000000001",
+      "url": "http://www.kotopo.net/",
+      "label": "Site fourni par l'utilisateur — accès impossible lors du test",
+      "origin": "user_input",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "unavailable"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000002",
+      "url": "https://www.lyon.fr/association/conferences-expositions-festivals/kotopo-mille-et-une-langues",
+      "label": "Ville de Lyon — fiche de l'association KoToPo",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000003",
+      "url": "https://www.lyon.fr/lieu/centres-culturels-pluridisciplinaires/le-kotopo",
+      "label": "Ville de Lyon — présentation du lieu KoToPo",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "available"
+    }
+  ],
+  "claims": [
+    {
+      "id": "c2000000-0000-4000-8000-000000000001",
+      "text": "La Ville de Lyon présente KoToPo comme une association dédiée aux échanges autour des langues et des cultures du monde.",
+      "kind": "fact",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000003"],
+      "verification": "sourced"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000002",
+      "text": "Les activités décrites comprennent des cours de langues, des échanges linguistiques, une bibliothèque et des événements culturels.",
+      "kind": "fact",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000002", "c1000000-0000-4000-8000-000000000003"],
+      "verification": "sourced"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000003",
+      "text": "La fiche de la Ville de Lyon indique le 14 rue René Leynaud, 69001 Lyon, comme adresse de l'association.",
+      "kind": "fact",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000002"],
+      "verification": "sourced"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000004",
+      "text": "La Ville de Lyon publie le numéro 04 72 07 75 49 et l'adresse kotopo@freesurf.fr pour le KoToPo.",
+      "kind": "fact",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000003"],
+      "verification": "sourced"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000005",
+      "text": "Une page de la Ville de Lyon indique www.kotopo.net comme site de l'association ; cette URL n'a pas été consultable pendant le présent test.",
+      "kind": "fact",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000001", "c1000000-0000-4000-8000-000000000002"],
+      "verification": "sourced"
+    }
+  ],
+  "contacts": [
+    {
+      "type": "phone",
+      "label": "Téléphone publié par la Ville de Lyon",
+      "value": "04 72 07 75 49",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000003"]
+    },
+    {
+      "type": "email",
+      "label": "Adresse publiée par la Ville de Lyon — à revérifier",
+      "value": "kotopo@freesurf.fr",
+      "sourceIds": ["c1000000-0000-4000-8000-000000000003"]
+    }
+  ],
+  "signals": [
+    {
+      "claimId": "c2000000-0000-4000-8000-000000000002",
+      "interpretation": "La coexistence de cours, de rencontres et d'événements peut créer un travail de mise à jour et de coordination. Le fonctionnement réel et le temps consacré à ces tâches restent inconnus.",
+      "confidence": "low"
+    },
+    {
+      "claimId": "c2000000-0000-4000-8000-000000000005",
+      "interpretation": "L'impossibilité de consulter le site pendant ce test appelle une vérification manuelle ; elle ne prouve ni une panne durable ni un retard numérique de l'association.",
+      "confidence": "low"
+    }
+  ],
+  "matches": [
+    {
+      "criterion": "Zone : Lyon",
+      "status": "match",
+      "explanation": "L'adresse publiée par la Ville de Lyon se situe à Lyon 1er.",
+      "claimIds": ["c2000000-0000-4000-8000-000000000003"]
+    },
+    {
+      "criterion": "Type : association locale",
+      "status": "match",
+      "explanation": "La Ville de Lyon classe KoToPo parmi les associations et décrit ses activités locales.",
+      "claimIds": ["c2000000-0000-4000-8000-000000000001", "c2000000-0000-4000-8000-000000000002"]
+    },
+    {
+      "criterion": "Manque de temps ou de budget pour le numérique",
+      "status": "unknown",
+      "explanation": "Aucune des sources consultables ne décrit les ressources ou les contraintes numériques de l'équipe.",
+      "claimIds": []
+    },
+    {
+      "criterion": "Tâches répétitives à simplifier, éventuellement avec l'IA",
+      "status": "unknown",
+      "explanation": "Les activités sont documentées, mais les outils et processus internes ne le sont pas.",
+      "claimIds": ["c2000000-0000-4000-8000-000000000002"]
+    },
+    {
+      "criterion": "Exclusion : déjà contactée",
+      "status": "unknown",
+      "explanation": "À vérifier dans votre propre historique de contact.",
+      "claimIds": []
+    }
+  ],
+  "approach": {
+    "angle": "Proposer un échange sur la mise à jour des informations de cours et d'événements",
+    "rationale": "La diversité des activités est établie par la Ville de Lyon. Une question ouverte sur la diffusion des informations permet de tester l'utilité d'un appui numérique sans attribuer de difficulté à l'association.",
+    "sourceIds": ["c1000000-0000-4000-8000-000000000002", "c1000000-0000-4000-8000-000000000003"],
+    "toVerify": [
+      "Consulter de nouveau le site officiel avant toute personnalisation plus précise.",
+      "Confirmer que les coordonnées publiées par la Ville de Lyon sont encore utilisées.",
+      "Demander si la mise à jour des informations prend réellement du temps.",
+      "Vérifier que KoToPo n'a pas déjà été contacté."
+    ]
+  },
+  "reservations": [
+    "Le site fourni n'a pas été accessible via l'outil de consultation ; le contenu actuel et les éventuels outils en ligne ne sont pas évalués.",
+    "Les horaires et tarifs présents dans les annuaires peuvent changer ; ils ne sont pas repris dans le brouillon.",
+    "L'adresse e-mail est publiée par la Ville de Lyon mais doit être revérifiée avant usage.",
+    "Le manque de temps, le budget et un besoin d'IA ne sont pas établis."
+  ],
+  "confidence": "low",
+  "confidenceReason": "L'identité, l'adresse et les activités sont corroborées par la Ville de Lyon, mais le site de l'association n'a pas été consultable. L'opportunité numérique reste hypothétique.",
+  "draft": {
+    "channel": "email",
+    "angle": "Question ouverte sur les informations liées aux activités",
+    "subject": "KoToPo : une question sur vos informations de cours et d'événements",
+    "body": "Bonjour,\n\nJ'ai découvert la présentation du KoToPo par la Ville de Lyon : vos cours, rencontres linguistiques et événements culturels m'ont intéressé.\n\nJ'accompagne des associations sur leurs sujets numériques, notamment quand le temps ou les moyens disponibles sont limités. Je peux aussi examiner avec elles si des outils d'IA seraient réellement utiles pour simplifier certaines tâches.\n\nLa mise à jour et la diffusion des informations sur vos activités vous prennent-elles du temps aujourd'hui ? Si c'est un sujet pour vous, je serais heureux d'en parler brièvement et de comprendre vos méthodes actuelles.\n\nBien à vous,\n[Votre nom et vos coordonnées]",
+    "state": "draft"
+  }
+}

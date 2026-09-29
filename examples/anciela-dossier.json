@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "preparation": "manual",
+  "associationName": "Anciela",
+  "summary": "Association indépendante lyonnaise qui encourage les engagements et les initiatives citoyennes pour une société écologique et solidaire. Elle anime notamment une Pépinière d'initiatives, des événements et plusieurs médias. Sa présence numérique visible est déjà développée ; ses besoins internes ne sont pas connus.",
+  "summarySourceIds": ["d1000000-0000-4000-8000-000000000001", "d1000000-0000-4000-8000-000000000002"],
+  "identity": {
+    "location": "34 rue Rachais, 69007 Lyon",
+    "website": "https://www.anciela.info/",
+    "activity": "Accompagnement d'initiatives citoyennes, mobilisation, événements, guide et magazine",
+    "sourceIds": {
+      "location": ["d1000000-0000-4000-8000-000000000003"],
+      "website": ["d1000000-0000-4000-8000-000000000001"],
+      "activity": ["d1000000-0000-4000-8000-000000000002", "d1000000-0000-4000-8000-000000000004"]
+    }
+  },
+  "sources": [
+    {
+      "id": "d1000000-0000-4000-8000-000000000001",
+      "url": "https://www.anciela.info/",
+      "label": "Anciela — accueil",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "d1000000-0000-4000-8000-000000000002",
+      "url": "https://www.anciela.info/decouvrir-anciela/",
+      "label": "Anciela — découvrir l'association",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "d1000000-0000-4000-8000-000000000003",
+      "url": "https://www.anciela.info/contact/",
+      "label": "Anciela — contact",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "d1000000-0000-4000-8000-000000000004",
+      "url": "https://www.anciela.info/pepiniere/",
+      "label": "Anciela — Pépinière d'initiatives",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T15:32:40.000Z",
+      "accessStatus": "available"
+    }
+  ],
+  "claims": [
+    {
+      "id": "d2000000-0000-4000-8000-000000000001",
+      "text": "Anciela se présente comme une association indépendante active à Lyon et dans ses alentours pour l'engagement écologique et solidaire.",
+      "kind": "fact",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000002"],
+      "verification": "sourced"
+    },
+    {
+      "id": "d2000000-0000-4000-8000-000000000002",
+      "text": "La Pépinière d'Anciela propose un accompagnement gratuit, libre et adapté aux initiatives citoyennes.",
+      "kind": "fact",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000004"],
+      "verification": "sourced"
+    },
+    {
+      "id": "d2000000-0000-4000-8000-000000000003",
+      "text": "Le site présente un guide, un magazine, des événements, un autre site consacré à l'action locale et une newsletter.",
+      "kind": "fact",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000001", "d1000000-0000-4000-8000-000000000002"],
+      "verification": "sourced"
+    },
+    {
+      "id": "d2000000-0000-4000-8000-000000000004",
+      "text": "La Pépinière décrit des rendez-vous personnalisés, des formations, des rencontres et un formulaire de demande d'accompagnement.",
+      "kind": "fact",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000004"],
+      "verification": "sourced"
+    },
+    {
+      "id": "d2000000-0000-4000-8000-000000000005",
+      "text": "La page contact d'Anciela indique le 34 rue Rachais à Lyon 7e, contact@anciela.info et le 09 72 65 10 17.",
+      "kind": "fact",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000003"],
+      "verification": "sourced"
+    }
+  ],
+  "contacts": [
+    {
+      "type": "email",
+      "label": "Adresse générale publiée par Anciela",
+      "value": "contact@anciela.info",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000003"]
+    },
+    {
+      "type": "phone",
+      "label": "Téléphone général publié par Anciela",
+      "value": "09 72 65 10 17",
+      "sourceIds": ["d1000000-0000-4000-8000-000000000003"]
+    }
+  ],
+  "signals": [
+    {
+      "claimId": "d2000000-0000-4000-8000-000000000004",
+      "interpretation": "Le parcours entre demandes, rendez-vous et suivi d'initiatives peut comporter des tâches de coordination ; les outils déjà en place et les éventuelles difficultés restent inconnus.",
+      "confidence": "low"
+    },
+    {
+      "claimId": "d2000000-0000-4000-8000-000000000003",
+      "interpretation": "La pluralité des supports numériques suggère qu'un simple discours de création de site serait peu pertinent. Elle ne renseigne pas sur les besoins de gestion internes.",
+      "confidence": "medium"
+    }
+  ],
+  "matches": [
+    {
+      "criterion": "Zone : Lyon",
+      "status": "match",
+      "explanation": "Anciela affiche une adresse à Lyon 7e et décrit une activité dans la région lyonnaise.",
+      "claimIds": ["d2000000-0000-4000-8000-000000000001", "d2000000-0000-4000-8000-000000000005"]
+    },
+    {
+      "criterion": "Type : association locale",
+      "status": "match",
+      "explanation": "Anciela se présente comme une association indépendante implantée à Lyon.",
+      "claimIds": ["d2000000-0000-4000-8000-000000000001"]
+    },
+    {
+      "criterion": "Manque de temps ou de budget pour le numérique",
+      "status": "unknown",
+      "explanation": "Le site ne documente pas les ressources consacrées au numérique. Ses nombreux supports visibles écartent seulement l'hypothèse d'une absence de présence web.",
+      "claimIds": ["d2000000-0000-4000-8000-000000000003"]
+    },
+    {
+      "criterion": "Tâches répétitives à simplifier, éventuellement avec l'IA",
+      "status": "unknown",
+      "explanation": "Les étapes d'accompagnement sont décrites, mais aucun besoin d'automatisation ou d'IA n'est exprimé.",
+      "claimIds": ["d2000000-0000-4000-8000-000000000004"]
+    },
+    {
+      "criterion": "Exclusion : déjà contactée",
+      "status": "unknown",
+      "explanation": "À vérifier dans votre propre historique de contact.",
+      "claimIds": []
+    }
+  ],
+  "approach": {
+    "angle": "Échanger sur le suivi des demandes et des rendez-vous de la Pépinière",
+    "rationale": "Anciela décrit un parcours d'accompagnement et plusieurs supports numériques. Un échange sur les tâches de suivi pourrait révéler une aide utile ; aucune difficulté n'est présumée, et l'IA n'est évoquée que si un cas concret le justifie.",
+    "sourceIds": ["d1000000-0000-4000-8000-000000000002", "d1000000-0000-4000-8000-000000000004"],
+    "toVerify": [
+      "Demander si le suivi des demandes et des rendez-vous présente réellement une difficulté.",
+      "Comprendre les outils et les règles de confidentialité déjà utilisés avant de suggérer une automatisation ou l'IA.",
+      "Vérifier qu'Anciela n'a pas déjà été contactée."
+    ]
+  },
+  "reservations": [
+    "Anciela possède déjà plusieurs supports numériques visibles ; elle ne doit pas être présentée comme en retard sur le digital.",
+    "Aucune contrainte de temps ou de budget n'est connue.",
+    "Aucun besoin d'automatisation ou d'IA n'est déclaré dans les pages consultées.",
+    "Le brouillon reste exploratoire et doit être relu et signé avant utilisation."
+  ],
+  "confidence": "medium",
+  "confidenceReason": "Identité, activités, localisation et contacts sont confirmés par le site officiel. La pertinence de l'offre numérique dépend d'un besoin interne encore inconnu.",
+  "draft": {
+    "channel": "email",
+    "angle": "Question ouverte sur le suivi des accompagnements",
+    "subject": "Anciela : une question sur le suivi des initiatives accompagnées",
+    "body": "Bonjour,\n\nJ'ai découvert la Pépinière d'Anciela et son accompagnement des initiatives citoyennes à Lyon. Votre site présente des rendez-vous personnalisés, des formations et des rencontres.\n\nJe suis spécialiste du numérique et j'aide les associations à simplifier certains usages ou tâches lorsqu'elles manquent de temps ou de moyens pour s'en occuper. Je peux également examiner si l'IA apporte une aide concrète à leur quotidien.\n\nLe suivi des demandes et des rendez-vous est-il un sujet sur lequel un regard extérieur pourrait vous être utile ? Si oui, je serais heureux d'échanger pour comprendre votre organisation et vos outils actuels.\n\nBien à vous,\n[Votre nom et vos coordonnées]",
+    "state": "draft"
+  }
+}

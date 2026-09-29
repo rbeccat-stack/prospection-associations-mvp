@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "preparation": "manual",
+  "associationName": "Artis MBC — Musique, Bazar et Compagnie",
+  "summary": "Association musicale implantée à la Guillotière, dans le 7e arrondissement de Lyon. Elle développe des projets de musiques amplifiées et de rue, accueille des musiciens en répétition et organise des événements. Son site présente actuellement une levée de fonds liée au rachat de ses locaux.",
+  "summarySourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000001", "a42f5a0b-1e3a-4d89-a2f0-000000000002"],
+  "identity": {
+    "location": "24 rue Mazagran, 69007 Lyon",
+    "website": "https://www.artis-mbc.fr/",
+    "activity": "Projets musicaux, répétitions, concerts et événements culturels",
+    "sourceIds": {
+      "location": ["a42f5a0b-1e3a-4d89-a2f0-000000000003"],
+      "website": ["a42f5a0b-1e3a-4d89-a2f0-000000000001"],
+      "activity": ["a42f5a0b-1e3a-4d89-a2f0-000000000002"]
+    }
+  },
+  "sources": [
+    {
+      "id": "a42f5a0b-1e3a-4d89-a2f0-000000000001",
+      "url": "https://www.artis-mbc.fr/",
+      "label": "Site officiel — accueil",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T14:55:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "a42f5a0b-1e3a-4d89-a2f0-000000000002",
+      "url": "https://www.artis-mbc.fr/qui-sommes-nous/",
+      "label": "Site officiel — qui sommes-nous ?",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T14:55:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "a42f5a0b-1e3a-4d89-a2f0-000000000003",
+      "url": "https://www.artis-mbc.fr/contact/",
+      "label": "Site officiel — contact",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T14:55:40.000Z",
+      "accessStatus": "available"
+    },
+    {
+      "id": "a42f5a0b-1e3a-4d89-a2f0-000000000004",
+      "url": "https://www.artis-mbc.fr/agenda/",
+      "label": "Site officiel — agenda",
+      "origin": "public_page",
+      "consultedAt": "2026-09-28T14:55:40.000Z",
+      "accessStatus": "available"
+    }
+  ],
+  "claims": [
+    {
+      "id": "b42f5a0b-1e3a-4d89-a2f0-000000000001",
+      "text": "Artis MBC se présente comme une association musicale implantée à la Guillotière, à Lyon 7e, depuis les années 2000.",
+      "kind": "fact",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000002"],
+      "verification": "sourced"
+    },
+    {
+      "id": "b42f5a0b-1e3a-4d89-a2f0-000000000002",
+      "text": "L’association développe des projets de musiques amplifiées et de rue.",
+      "kind": "fact",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000002"],
+      "verification": "sourced"
+    },
+    {
+      "id": "b42f5a0b-1e3a-4d89-a2f0-000000000003",
+      "text": "Des musiciens répètent dans les locaux de l’association et participent à ses projets et événements.",
+      "kind": "fact",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000002"],
+      "verification": "sourced"
+    },
+    {
+      "id": "b42f5a0b-1e3a-4d89-a2f0-000000000004",
+      "text": "La page d’accueil présente une levée de fonds pour le rachat des locaux d’Artis.",
+      "kind": "fact",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000001"],
+      "verification": "sourced"
+    },
+    {
+      "id": "b42f5a0b-1e3a-4d89-a2f0-000000000005",
+      "text": "L’agenda annonce le Festival des Pavés le 3 octobre 2026, place Mazagran.",
+      "kind": "fact",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000004"],
+      "verification": "sourced"
+    },
+    {
+      "id": "b42f5a0b-1e3a-4d89-a2f0-000000000006",
+      "text": "La page de contact indique le 24 rue Mazagran à Lyon 7e, un téléphone public et un formulaire de contact.",
+      "kind": "fact",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000003"],
+      "verification": "sourced"
+    }
+  ],
+  "contacts": [
+    {
+      "type": "phone",
+      "label": "Téléphone de l’association",
+      "value": "04 78 69 13 73",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000003"]
+    },
+    {
+      "type": "form",
+      "label": "Formulaire de contact",
+      "value": "https://www.artis-mbc.fr/contact/",
+      "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000003"]
+    }
+  ],
+  "signals": [
+    {
+      "claimId": "b42f5a0b-1e3a-4d89-a2f0-000000000004",
+      "interpretation": "La campagne de rachat peut rendre la communication avec les soutiens importante ; aucun besoin d’automatisation n’est établi par cette seule annonce.",
+      "confidence": "low"
+    },
+    {
+      "claimId": "b42f5a0b-1e3a-4d89-a2f0-000000000003",
+      "interpretation": "La coordination de musiciens et d’événements pourrait impliquer des tâches répétitives. C’est une piste de discussion, pas un problème confirmé.",
+      "confidence": "low"
+    }
+  ],
+  "matches": [
+    {
+      "criterion": "Zone : Lyon",
+      "status": "match",
+      "explanation": "L’association et son adresse publique sont situées à Lyon 7e.",
+      "claimIds": ["b42f5a0b-1e3a-4d89-a2f0-000000000001", "b42f5a0b-1e3a-4d89-a2f0-000000000006"]
+    },
+    {
+      "criterion": "Type : association locale",
+      "status": "match",
+      "explanation": "Le site présente Artis comme une association implantée dans le quartier de la Guillotière et active localement.",
+      "claimIds": ["b42f5a0b-1e3a-4d89-a2f0-000000000001"]
+    },
+    {
+      "criterion": "Thématique : musique",
+      "status": "match",
+      "explanation": "Les projets déclarés concernent les musiques amplifiées et de rue.",
+      "claimIds": ["b42f5a0b-1e3a-4d89-a2f0-000000000002"]
+    },
+    {
+      "criterion": "Maturité digitale : présence web limitée",
+      "status": "unknown",
+      "explanation": "Le site est présent et affiche un agenda et une campagne. Ces seules pages ne permettent pas d’évaluer la maturité digitale de l’association.",
+      "claimIds": ["b42f5a0b-1e3a-4d89-a2f0-000000000004", "b42f5a0b-1e3a-4d89-a2f0-000000000005"]
+    },
+    {
+      "criterion": "Signal : intérêt éventuel pour l’automatisation",
+      "status": "unknown",
+      "explanation": "Aucune demande explicite d’automatisation n’a été trouvée dans les pages consultées.",
+      "claimIds": []
+    },
+    {
+      "criterion": "Exclusion : déjà contactée",
+      "status": "unknown",
+      "explanation": "Ce point dépend de votre historique de contact, indisponible dans ce test.",
+      "claimIds": []
+    }
+  ],
+  "approach": {
+    "angle": "Explorer la coordination des informations liées aux événements et aux musiciens",
+    "rationale": "Artis présente des projets participatifs et un agenda événementiel. Cela justifie une question ouverte sur les tâches de coordination, sans présumer d’un besoin ni d’une difficulté actuelle.",
+    "sourceIds": ["a42f5a0b-1e3a-4d89-a2f0-000000000002", "a42f5a0b-1e3a-4d89-a2f0-000000000004"],
+    "toVerify": [
+      "Confirmer ce que vous proposez exactement avant d’adapter le message.",
+      "Vérifier si l’association souhaite améliorer une tâche de coordination ; ne pas le supposer.",
+      "Vérifier dans votre historique qu’Artis n’a pas déjà été contactée."
+    ]
+  },
+  "reservations": [
+    "La page d’accueil évoque plus d’une centaine de musiciens ; la page de présentation en évoque plus de 200. La taille exacte et la période de mesure restent incertaines.",
+    "Les pages de contact consultées affichent un téléphone et un formulaire, mais aucune adresse e-mail générale vérifiée.",
+    "La maturité digitale et l’intérêt pour une automatisation ne sont pas établis.",
+    "Le brouillon contient un emplacement à adapter à votre offre avant toute utilisation."
+  ],
+  "confidence": "medium",
+  "confidenceReason": "Identité, activité, localisation et points de contact sont étayés par le site officiel. L’opportunité commerciale reste hypothétique et les données de taille se contredisent.",
+  "draft": {
+    "channel": "email",
+    "angle": "Question ouverte sur la coordination des activités et événements",
+    "subject": "Artis : une question sur l’organisation des événements",
+    "body": "Bonjour,\n\nJ’ai découvert les projets musicaux d’Artis à la Guillotière et vu que le Festival des Pavés figure dans votre agenda.\n\n[Présentez ici votre activité et la valeur concrète que vous apportez, en une phrase.]\n\nLe suivi des informations entre musiciens, participants et événements est-il un sujet que vous cherchez à simplifier aujourd’hui ? Si oui, je serais ravi d’échanger brièvement pour comprendre votre fonctionnement avant de proposer quoi que ce soit.\n\nBien à vous,\n[Votre signature]",
+    "state": "draft"
+  }
+}
