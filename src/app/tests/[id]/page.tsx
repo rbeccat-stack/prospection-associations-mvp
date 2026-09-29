@@ -13,18 +13,18 @@ function list(values: string[]) { return values.length ? values.join(", ") : "No
 
 export default async function TestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
-  const run = getRun(db, id);
+  const db = await getDb();
+  const run = await getRun(db, id);
   if (!run) notFound();
-  const dossier = getDossier(db, id);
+  const dossier = await getDossier(db, id);
   const input = run.input;
   const detail = "location" in input ? input : null;
   const criteria = run.profileSnapshot;
 
   return <main className="detail-shell">
-    <div className="detail-top"><Link href="/" className="text-link">← Retour au tableau de bord</Link><span className="quiet">Test local · {new Date(run.createdAt).toLocaleString("fr-FR")}</span></div>
+    <div className="detail-top"><Link href="/" className="text-link">← Retour au tableau de bord</Link><span className="quiet">Test privé · {new Date(run.createdAt).toLocaleString("fr-FR")}</span></div>
     <header className="detail-head"><span className="status-tag">{dossier ? "Dossier sourcé" : "En attente d’analyse"}</span><h1>{run.label}</h1><p>{dossier ? "Fiche préparée à partir des sources indiquées. Les faits, hypothèses et réserves restent séparés." : "Cette entrée est enregistrée. Aucune analyse de site ni fiche sourcée n’a encore été produite."}</p></header>
-    <TestWorkspace run={run} dossier={dossier} pages={collection(db, id)} work={workflow(db, id)} services={serviceStatus()} history={revisions(db, id)} sent={deliveries(db, id)} />
+    <TestWorkspace run={run} dossier={dossier} pages={await collection(db, id)} work={await workflow(db, id)} services={serviceStatus()} history={await revisions(db, id)} sent={await deliveries(db, id)} />
     <h2 className="original-data-heading">Données du test</h2>
     <div className="detail-grid">
       <section className="panel"><h2>Entrée fournie</h2><dl className="facts"><dt>Mode</dt><dd>{input.type === "url" ? "URL" : input.type === "csv" ? "CSV" : "Saisie manuelle"}</dd><dt>URL</dt><dd>{input.url ? <a href={input.url} target="_blank" rel="noreferrer">{input.url}</a> : "Non renseignée"}</dd><dt>Localisation</dt><dd>{detail?.location || "Non renseignée"}</dd><dt>Activité</dt><dd>{detail?.activity || "Non renseignée"}</dd><dt>Résumé saisi</dt><dd>{detail?.summary || "Non renseigné"}</dd><dt>Note de source</dt><dd>{detail?.sourceNote || "Non renseignée"}</dd></dl></section>

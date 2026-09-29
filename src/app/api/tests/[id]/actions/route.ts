@@ -22,36 +22,39 @@ const actionSchema = z.discriminatedUnion('action', [
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   let working = false;
   const { id } = await params;
-  const db = getDb();
   try {
+    const db = await getDb();
     const input = actionSchema.parse(await readLocalJson(request));
-    const run = getRun(db, id);
+    const run = await getRun(db, id);
     if (!run) throw new HttpError(404, 'Test introuvable.');
     if (input.action === 'collect') {
       if (!input.urls.length && input.manualText.length < 30) throw new HttpError(400, 'Indiquez une URL ou au moins 30 caractères d’informations à analyser.');
-      startWork(db, id, 'collecting'); working = true;
+      await startWork(db, id, 'collecting'); working = true;
       const pages: CollectedPage[] = [];
       for (const url of [...new Set(input.urls)]) pages.push(await collectPage(url));
       if (input.manualText) pages.push({ source: { id: randomUUID(), label: 'Informations fournies manuellement pour ce test', origin: 'user_input', consultedAt: new Date().toISOString(), accessStatus: 'available' }, text: input.manualText });
-      saveCollection(db, id, pages);
-      finishWork(db, id, pages.some(page => page.source.accessStatus === 'available') ? 'collected' : 'failed', pages.every(page => page.source.accessStatus !== 'available') ? 'Aucune page lisible. Ajoutez une autre URL ou des informations manuelles.' : null);
+      await saveCollection(db, id, pages);
+      await finishWork(db, id, pages.some(page => page.source.accessStatus === 'available') ? 'collected' : 'failed', pages.every(page => page.source.accessStatus !== 'available') ? 'Aucune page lisible. Ajoutez une autre URL ou des informations manuelles.' : null);
       return Response.json({ pages });
     }
     if (input.action === 'analyze') {
       if (input.revision > 0 && !input.replace) throw new HttpError(409, 'Confirmez la création d’une nouvelle version du dossier.');
-      startWork(db, id, 'analyzing'); working = true;
-      const content = await analyze(db, run, collection(db, id));
-      const dossier = replaceDossier(db, id, content, input.revision);
-      finishWork(db, id, 'ready');
+      await startWork(db, id, 'analyzing'); working = true;
+      const content = await analyze(db, run, await collection(db, id));
+      const dossier = await replaceDossier(db, id, content, input.revision);
+      await finishWork(db, id, 'ready');
       return Response.json({ dossier });
     }
-    if (input.action === 'draft') return Response.json({ dossier: editDraft(db, id, input.draft, input.revision) });
-    if (input.action === 'preview') return Response.json({ preview: previewDelivery(db, id) });
+    if (input.action === 'draft') return Response.json({ dossier: await editDraft(db, id, input.draft, input.revision) });
+    if (input.action === 'preview') return Response.json({ preview: await previewDelivery(db, id) });
     if (input.action === 'send') return Response.json({ deliveries: await sendDelivery(db, id, input.previewId, input.retry) });
-    if (input.action === 'received') { confirmReceipt(db, id, input.deliveryId); return Response.json({ ok: true }); }
-    if (input.action === 'rerun') return Response.json({ run: createRuns(db, [run.input], true)[0] });
+    if (input.action === 'received') { await confirmReceipt(db, id, input.deliveryId); return Response.json({ ok: true }); }
+    if (input.action === 'rerun') return Response.json({ run: (await createRuns(db, [run.input], true))[0] });
   } catch (error) {
-    if (working) finishWork(db, id, 'failed', error instanceof HttpError ? error.message : 'Le traitement a échoué. Les données précédentes restent disponibles.');
+    if (working) {
+      try { await finishWork(await getDb(), id, 'failed', error instanceof HttpError ? error.message : 'Le traitement a échoué. Les données précédentes restent disponibles.'); }
+      catch (failure) { console.error('Impossible de marquer le traitement en échec', failure); }
+    }
     return errorResponse(error);
   }
 }

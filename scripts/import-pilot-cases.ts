@@ -25,16 +25,14 @@ const cases: { input: TestInput; file: string }[] = [
 ];
 
 const prepared = cases.map(({ input, file }) => ({ input, dossier: dossierSchema.parse(JSON.parse(readFileSync(file, "utf8"))) }));
-const db = getDb();
-const duplicates = findDuplicates(db, prepared.map(({ input }) => input));
+const db = await getDb();
+const duplicates = await findDuplicates(db, prepared.map(({ input }) => input));
 if (duplicates.length) throw new Error(`Un cas pilote est déjà présent : ${duplicates.map(({ label }) => label).join(", ")}`);
 
-const imported = db.transaction(() => {
-  const savedProfile = saveProfile(db, profile);
-  const runs = createRuns(db, prepared.map(({ input }) => input));
-  for (const [index, run] of runs.entries()) saveDossier(db, run.id, prepared[index].dossier);
-  return { savedProfile, runs };
-}).immediate();
+const savedProfile = await saveProfile(db, profile);
+const runs = await createRuns(db, prepared.map(({ input }) => input));
+for (const [index, run] of runs.entries()) await saveDossier(db, run.id, prepared[index].dossier);
+const imported = { savedProfile, runs };
 
 console.log(JSON.stringify({
   profileVersion: imported.savedProfile.version,

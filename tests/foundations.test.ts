@@ -1,36 +1,36 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import Database from "better-sqlite3";
+import { createClient } from "@libsql/client";
 import { parseCsvInputs } from "../src/lib/csv";
 import { canonicalizeUrl, claimSchema, defaultProfile, dossierSchema, type TestInput } from "../src/lib/schemas";
-import { createRuns, DuplicateError, getDossier, getRun, initializeDb, listRuns, saveDossier, saveProfile } from "../src/lib/store";
+import { createRuns, DuplicateError, getDossier, getRun, initializeDb, listRuns, row, saveDossier, saveProfile } from "../src/lib/store";
 
-test("un test garde le ciblage utilisé, même après une modification", () => {
-  const db = new Database(":memory:");
-  initializeDb(db);
-  const v1 = saveProfile(db, { ...defaultProfile, name: "Premier ciblage", regions: ["Lyon"] });
+test("un test garde le ciblage utilisé, même après une modification", async () => {
+  const db = createClient({ url: "file::memory:" });
+  await initializeDb(db);
+  const v1 = await saveProfile(db, { ...defaultProfile, name: "Premier ciblage", regions: ["Lyon"] });
   const input: TestInput = { type: "manual", name: "Association Alpha", location: "Lyon", url: "", activity: "", summary: "", sourceNote: "" };
-  const [run] = createRuns(db, [input]);
-  const v2 = saveProfile(db, { ...defaultProfile, name: "Ciblage revu", regions: ["Paris"] });
+  const [run] = await createRuns(db, [input]);
+  const v2 = await saveProfile(db, { ...defaultProfile, name: "Ciblage revu", regions: ["Paris"] });
   assert.equal(v1.version, 1);
   assert.equal(v2.version, 2);
-  assert.deepEqual(getRun(db, run.id)?.profileSnapshot.regions, ["Lyon"]);
-  assert.equal(getRun(db, run.id)?.profileVersion, 1);
+  assert.deepEqual((await getRun(db, run.id))?.profileSnapshot.regions, ["Lyon"]);
+  assert.equal((await getRun(db, run.id))?.profileVersion, 1);
   db.close();
 });
 
-test("un doublon est signalé et un nouveau test explicite préserve l’historique", () => {
-  const db = new Database(":memory:");
-  initializeDb(db);
-  saveProfile(db, defaultProfile);
+test("un doublon est signalé et un nouveau test explicite préserve l’historique", async () => {
+  const db = createClient({ url: "file::memory:" });
+  await initializeDb(db);
+  await saveProfile(db, defaultProfile);
   const first: TestInput = { type: "url", url: "https://www.exemple.org/?utm_source=test", name: "Exemple" };
   const second: TestInput = { type: "url", url: "https://exemple.org", name: "Exemple revu" };
-  createRuns(db, [first]);
-  assert.throws(() => createRuns(db, [second]), DuplicateError);
-  assert.equal(listRuns(db).length, 1);
-  createRuns(db, [second], true);
-  assert.equal(listRuns(db).length, 2);
+  await createRuns(db, [first]);
+  await assert.rejects(createRuns(db, [second]), DuplicateError);
+  assert.equal((await listRuns(db)).length, 1);
+  await createRuns(db, [second], true);
+  assert.equal((await listRuns(db)).length, 2);
   assert.equal(canonicalizeUrl(first.url), canonicalizeUrl(second.url));
   db.close();
 });
@@ -68,18 +68,18 @@ test("les faits sans source et les références inconnues sont refusés", () => 
   assert.equal(dossierSchema.safeParse(dossier).success, false);
 });
 
-test("le dossier manuel Artis est validé, conservé séparément et retrouvé", () => {
-  const db = new Database(":memory:");
-  initializeDb(db);
-  saveProfile(db, defaultProfile);
-  const [run] = createRuns(db, [{ type: "manual", name: "Artis musique", url: "", location: "", activity: "", summary: "", sourceNote: "" }]);
+test("le dossier manuel Artis est validé, conservé séparément et retrouvé", async () => {
+  const db = createClient({ url: "file::memory:" });
+  await initializeDb(db);
+  await saveProfile(db, defaultProfile);
+  const [run] = await createRuns(db, [{ type: "manual", name: "Artis musique", url: "", location: "", activity: "", summary: "", sourceNote: "" }]);
   const raw = JSON.parse(readFileSync(new URL("../examples/artis-mbc-dossier.json", import.meta.url), "utf8"));
   const content = dossierSchema.parse(raw);
-  saveDossier(db, run.id, content);
-  assert.equal(getRun(db, run.id)?.dossierReady, true);
-  assert.equal(getDossier(db, run.id)?.content.contacts.length, 2);
-  assert.equal((db.prepare("SELECT COUNT(*) AS count FROM source_records WHERE run_id = ?").get(run.id) as { count: number }).count, 4);
-  assert.throws(() => saveDossier(db, run.id, content), /déjà un dossier/);
+  await saveDossier(db, run.id, content);
+  assert.equal((await getRun(db, run.id))?.dossierReady, true);
+  assert.equal((await getDossier(db, run.id))?.content.contacts.length, 2);
+  assert.equal((await row<{ count: number }>(db, "SELECT COUNT(*) AS count FROM source_records WHERE run_id = ?", [run.id]))?.count, 4);
+  await assert.rejects(saveDossier(db, run.id, content), /déjà un dossier/);
   db.close();
 });
 

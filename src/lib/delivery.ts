@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import type Database from 'better-sqlite3';
+import type { Client } from '@libsql/client';
 import nodemailer from 'nodemailer';
-import { getDossier, getRun, type StoredDossier } from './store';
+import { atomic, getDossier, getRun, row, rows, run, type Db, type StoredDossier } from './store';
 import { mailConfig } from './services';
 import { HttpError } from './http';
 
@@ -29,35 +29,35 @@ export function deliveryText(dossier: StoredDossier, criteria: unknown) {
   ].join('\n\n');
 }
 export type Delivery = { id: string; run_id: string; revision: number; recipient: string; subject: string; body: string; state: string; provider_id: string | null; error: string | null; created_at: string; updated_at: string };
-export function deliveries(db: Database.Database, runId: string): Delivery[] {
-  return (db.prepare('SELECT * FROM deliveries WHERE run_id=? ORDER BY created_at DESC').all(runId) as Delivery[]).map(row => row.state === 'sending' && Date.now() - Date.parse(row.updated_at) > 120000 ? { ...row, state: 'uncertain', error: 'Envoi interrompu : vérifiez votre boîte avant toute reprise.' } : row);
+export async function deliveries(db: Db, runId: string): Promise<Delivery[]> {
+  return (await rows<Delivery>(db, 'SELECT * FROM deliveries WHERE run_id=? ORDER BY created_at DESC', [runId])).map(value => value.state === 'sending' && Date.now() - Date.parse(value.updated_at) > 120000 ? { ...value, state: 'uncertain', error: 'Envoi interrompu : vérifiez votre boîte avant toute reprise.' } : value);
 }
-export function previewDelivery(db: Database.Database, runId: string) {
-  const dossier = getDossier(db, runId); const run = getRun(db, runId);
-  if (!dossier || !run) throw new HttpError(404, 'Dossier introuvable.');
+export async function previewDelivery(db: Client, runId: string) {
+  const dossier = await getDossier(db, runId); const runInfo = await getRun(db, runId);
+  if (!dossier || !runInfo) throw new HttpError(404, 'Dossier introuvable.');
   const id = randomUUID(); const recipient = mailConfig().recipient;
   const subject = `Dossier de test : ${dossier.content.associationName}`;
-  const body = deliveryText(dossier, run.profileSnapshot);
-  db.prepare('INSERT INTO delivery_previews VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, runId, dossier.revision, recipient, subject, body, new Date().toISOString());
+  const body = deliveryText(dossier, runInfo.profileSnapshot);
+  await run(db, 'INSERT INTO delivery_previews VALUES (?, ?, ?, ?, ?, ?, ?)', [id, runId, dossier.revision, recipient, subject, body, new Date().toISOString()]);
   return { id, revision: dossier.revision, recipient, subject, body };
 }
 type Preview = { id: string; run_id: string; revision: number; recipient: string; subject: string; body: string; created_at: string };
-export function reserveDelivery(db: Database.Database, runId: string, previewId: string, recipient: string, retry: boolean) {
-  return db.transaction(() => {
-    const preview = db.prepare('SELECT * FROM delivery_previews WHERE id=? AND run_id=?').get(previewId, runId) as Preview | undefined;
+export async function reserveDelivery(db: Client, runId: string, previewId: string, recipient: string, retry: boolean) {
+  return atomic(db, async tx => {
+    const preview = await row<Preview>(tx, 'SELECT * FROM delivery_previews WHERE id=? AND run_id=?', [previewId, runId]);
     if (!preview || Date.now() - Date.parse(preview.created_at) > 900000) throw new HttpError(409, 'Prévisualisation expirée. Ouvrez-en une nouvelle avant l’envoi.');
     if (preview.recipient !== recipient || !recipient) throw new HttpError(409, 'Le destinataire a changé. Prévisualisez de nouveau.');
-    if (getDossier(db, runId)?.revision !== preview.revision) throw new HttpError(409, 'Le dossier a changé. Prévisualisez la nouvelle version.');
-    const old = deliveries(db, runId).find(row => row.revision === preview.revision);
+    if ((await getDossier(tx, runId))?.revision !== preview.revision) throw new HttpError(409, 'Le dossier a changé. Prévisualisez la nouvelle version.');
+    const old = (await deliveries(tx, runId)).find(value => value.revision === preview.revision);
     if (old && old.recipient !== recipient) throw new HttpError(409, 'Cette version est liée à un autre destinataire de test. Créez une nouvelle version avant de changer de destinataire.');
     if (old && !(['failed', 'uncertain'].includes(old.state) && retry)) throw new HttpError(409, 'Cette version possède déjà une tentative. Consultez son état avant de reprendre.');
     const now = new Date().toISOString(); const id = old?.id || randomUUID();
-    if (old) db.prepare("UPDATE deliveries SET state='sending',error=NULL,updated_at=? WHERE id=?").run(now, id);
-    else db.prepare('INSERT INTO deliveries VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)').run(id, runId, preview.revision, recipient, preview.subject, preview.body, 'sending', now, now);
+    if (old) await run(tx, "UPDATE deliveries SET state='sending',error=NULL,updated_at=? WHERE id=?", [now, id]);
+    else await run(tx, 'INSERT INTO deliveries VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)', [id, runId, preview.revision, recipient, preview.subject, preview.body, 'sending', now, now]);
     const attemptId = randomUUID();
-    db.prepare('INSERT INTO delivery_attempts VALUES (?, ?, ?, NULL, ?)').run(attemptId, id, 'sending', now);
+    await run(tx, 'INSERT INTO delivery_attempts VALUES (?, ?, ?, NULL, ?)', [attemptId, id, 'sending', now]);
     return { id, attemptId, preview };
-  }).immediate();
+  });
 }
 type MailSender = (config: ReturnType<typeof mailConfig>, message: { id: string; subject: string; body: string }) => Promise<{ accepted: string[]; messageId: string }>;
 const smtpSender: MailSender = async (config, message) => {
@@ -67,10 +67,10 @@ const smtpSender: MailSender = async (config, message) => {
     return { accepted: sent.accepted.map(String), messageId: sent.messageId };
   } finally { transport.close(); }
 };
-export async function sendDelivery(db: Database.Database, runId: string, previewId: string, retry: boolean, sender: MailSender = smtpSender) {
+export async function sendDelivery(db: Client, runId: string, previewId: string, retry: boolean, sender: MailSender = smtpSender) {
   const config = mailConfig();
   if (!config.ready) throw new HttpError(409, "L'e-mail de test attend sa configuration et votre adresse personnelle.");
-  const reserved = reserveDelivery(db, runId, previewId, config.recipient, retry);
+  const reserved = await reserveDelivery(db, runId, previewId, config.recipient, retry);
   let state = 'uncertain', error: string | null = null, providerId: string | null = null;
   try {
     const sent = await sender(config, { id: reserved.id, subject: reserved.preview.subject, body: reserved.preview.body });
@@ -81,14 +81,14 @@ export async function sendDelivery(db: Database.Database, runId: string, preview
     state = ['EAUTH', 'EENVELOPE', 'ECONNECTION', 'EDNS', 'ETLS'].includes(code || '') ? 'failed' : 'uncertain';
     error = state === 'failed' ? "Envoi refusé ou connexion impossible. Vérifiez la configuration avant de reprendre." : "Résultat d'envoi incertain. Vérifiez votre boîte et les indésirables avant de reprendre.";
   }
-  db.transaction(() => {
-    db.prepare('UPDATE deliveries SET state=?,provider_id=?,error=?,updated_at=? WHERE id=?').run(state, providerId, error, new Date().toISOString(), reserved.id);
-    db.prepare('UPDATE delivery_attempts SET state=?,error=? WHERE id=?').run(state, error, reserved.attemptId);
-  }).immediate();
+  await atomic(db, async tx => {
+    await run(tx, 'UPDATE deliveries SET state=?,provider_id=?,error=?,updated_at=? WHERE id=?', [state, providerId, error, new Date().toISOString(), reserved.id]);
+    await run(tx, 'UPDATE delivery_attempts SET state=?,error=? WHERE id=?', [state, error, reserved.attemptId]);
+  });
   return deliveries(db, runId);
 }
-export function confirmReceipt(db: Database.Database, runId: string, deliveryId: string) {
-  const delivery = deliveries(db, runId).find(row => row.id === deliveryId);
+export async function confirmReceipt(db: Client, runId: string, deliveryId: string) {
+  const delivery = (await deliveries(db, runId)).find(value => value.id === deliveryId);
   if (!delivery || !['accepted', 'uncertain'].includes(delivery.state)) throw new HttpError(409, 'Aucun envoi à confirmer.');
-  db.prepare("UPDATE deliveries SET state='received',error=NULL,updated_at=? WHERE id=?").run(new Date().toISOString(), deliveryId);
+  await run(db, "UPDATE deliveries SET state='received',error=NULL,updated_at=? WHERE id=?", [new Date().toISOString(), deliveryId]);
 }

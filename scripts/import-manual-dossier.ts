@@ -11,5 +11,5 @@ if (!runId || !filePath) {
 
 const absolutePath = path.resolve(filePath);
 const content = dossierSchema.parse(JSON.parse(readFileSync(absolutePath, "utf8")));
-const saved = saveDossier(getDb(), runId, content);
+const saved = await saveDossier(await getDb(), runId, content);
 console.log(`Dossier manuel enregistré : ${saved.id} (test ${saved.runId})`);

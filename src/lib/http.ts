@@ -5,9 +5,8 @@ export async function readLocalJson(request: Request): Promise<unknown> {
   const url = new URL(request.url);
   const origin = request.headers.get("origin");
   const originUrl = origin ? new URL(origin) : null;
-  const isLoopback = (hostname: string) => ["127.0.0.1", "localhost"].includes(hostname);
-  if (!isLoopback(url.hostname) || (originUrl && (!isLoopback(originUrl.hostname) || originUrl.port !== url.port || originUrl.protocol !== url.protocol))) {
-    throw new HttpError(403, "Cette action est réservée à l’application locale.");
+  if (originUrl && originUrl.origin !== url.origin) {
+    throw new HttpError(403, "Cette action doit provenir de cette application.");
   }
   if (!request.headers.get("content-type")?.startsWith("application/json")) {
     throw new HttpError(415, "Le contenu doit être du JSON.");
@@ -32,6 +31,6 @@ export function errorResponse(error: unknown): Response {
   if (error instanceof Error && ["CSV invalide", "Le CSV", "Ligne", "Choisissez", "Enregistrez"].some((prefix) => error.message.startsWith(prefix))) {
     return Response.json({ error: error.message }, { status: 400 });
   }
-  console.error("Erreur interne lors de l’enregistrement local", error);
+  console.error("Erreur interne lors de l’enregistrement", error);
   return Response.json({ error: "Une erreur interne a empêché l’enregistrement." }, { status: 500 });
 }

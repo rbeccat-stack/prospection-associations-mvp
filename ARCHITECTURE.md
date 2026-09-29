@@ -1,6 +1,6 @@
 # Architecture V0
 
-Next.js App Router et TypeScript servent l’interface sur 127.0.0.1. SQLite avec WAL reste locale, sans compte. Les écritures valident l’origine locale, le type JSON et des schémas stricts. Une authentification adaptée serait nécessaire avant toute exposition sur Internet.
+Next.js App Router et TypeScript servent l’interface en local ou sur Vercel. Le client libSQL utilise SQLite local en développement et Turso en production. Les écritures valident l’origine, le type JSON et des schémas stricts. Sur Vercel, un mot de passe HTTP protège les pages et les routes ; cette protection convient à un usage personnel avec un seul secret partagé.
 
 ## Parcours
 

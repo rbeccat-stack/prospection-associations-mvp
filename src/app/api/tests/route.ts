@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request): Promise<Response> {
   try {
     const { inputs, allowDuplicates } = parseSubmission(await readLocalJson(request));
-    const runs = createRuns(getDb(), inputs, allowDuplicates);
+    const runs = await createRuns(await getDb(), inputs, allowDuplicates);
     return Response.json({ runs }, { status: 201 });
   } catch (error) {
     return errorResponse(error);

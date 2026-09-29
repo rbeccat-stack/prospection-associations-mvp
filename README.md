@@ -1,4 +1,4 @@
-# Prospection d’associations — V0 locale
+# Prospection d’associations — V0 privée
 
 Application personnelle de qualification : ciblage versionné, URL/saisie/CSV, collecte de trois pages publiques au maximum, analyse IA configurable, dossier sourcé, brouillon éditable, versions précédentes, prévisualisation et e-mail de test vers une adresse personnelle unique.
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Ouvrir http://127.0.0.1:3000. SQLite conserve les données dans `.data/prospection.db`. Les migrations préservent les trois dossiers pilotes existants. Votre offre est maintenant enregistrée dans le ciblage et le brouillon Artis a été adapté avec conservation de l’ancienne version.
+Ouvrir http://127.0.0.1:3000. En local, SQLite conserve les données dans `.data/prospection.db`. Sur Vercel, configurer Turso et le mot de passe privé selon [CONFIGURATION.md](CONFIGURATION.md). Les données locales ne sont pas transférées automatiquement vers Turso.
 
 ## Services et limites actuelles
 

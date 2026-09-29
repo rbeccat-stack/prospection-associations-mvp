@@ -1,6 +1,16 @@
 # Configuration de la V0
 
-L'application fonctionne sur `http://127.0.0.1:3000`. Les clés et mots de passe se placent dans `.env.local`, jamais dans la conversation ni dans le navigateur. Copier `.env.example` vers `.env.local`, compléter les champs nécessaires, puis redémarrer `npm run dev`.
+En local, l'application fonctionne sur `http://127.0.0.1:3000`. Les clés et mots de passe se placent dans `.env.local`, jamais dans la conversation ni dans le navigateur. Copier `.env.example` vers `.env.local`, compléter les champs nécessaires, puis redémarrer `npm run dev`.
+
+## Déploiement privé sur Vercel avec Turso
+
+1. Créer une base Turso. Récupérer son URL `libsql://...` et un jeton d'accès à cette base.
+2. Dans **Vercel → projet → Settings → Environment Variables**, ajouter `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` et `APP_PASSWORD` pour l'environnement Production. Choisir soi-même un long `APP_PASSWORD` unique. Ne jamais placer ces valeurs dans GitHub, ni les préfixer par `NEXT_PUBLIC_`.
+3. Redéployer le projet. À l'ouverture du site, le navigateur demande un nom d'utilisateur et un mot de passe : le nom d'utilisateur est `swipe`, le mot de passe est exactement `APP_PASSWORD`.
+
+L'application crée automatiquement ses tables dans la base Turso au premier accès. Sans `APP_PASSWORD`, le site renvoie 503 ; sans `TURSO_DATABASE_URL`, il ne peut pas ouvrir de base sur Vercel. `TURSO_AUTH_TOKEN` doit correspondre à la base et rester secret. Les données SQLite présentes dans `.data/prospection.db` ne sont pas transférées automatiquement vers Turso : le déploiement démarre avec une base vide. Conserver la base locale pour toute migration ultérieure.
+
+Ce mot de passe unique protège toute l'application pour un usage personnel. Partager ce mot de passe donnerait accès aux dossiers et aux actions de l'application ; une gestion de comptes serait nécessaire pour plusieurs utilisateurs.
 
 ## Sans service externe
 
@@ -24,7 +34,7 @@ Sur une fiche : enregistrer le brouillon, ouvrir la prévisualisation, puis cliq
 
 ## Données et reprise
 
-SQLite est dans `.data/prospection.db` (ou le chemin `DATABASE_PATH`). Conserver ensemble la base et ses fichiers WAL lors d'une sauvegarde à chaud, ou arrêter le serveur avant copie. Les migrations sont additives et préservent les trois dossiers existants. Chaque modification de dossier conserve l'ancienne version ; les versions et le contenu des e-mails restent figés.
+En local, SQLite est dans `.data/prospection.db` (ou le chemin `DATABASE_PATH`). Conserver ensemble la base et ses fichiers WAL lors d'une sauvegarde à chaud, ou arrêter le serveur avant copie. Sur Vercel, la base est distante chez Turso et sa sauvegarde se gère dans ce service. Les migrations de schéma sont additives et préservent les dossiers existants dans chaque base. Chaque modification de dossier conserve l'ancienne version ; les versions et le contenu des e-mails restent figés.
 
 Une collecte interrompue peut être relancée après cinq minutes. Une tentative e-mail interrompue devient « résultat incertain » après deux minutes : vérifier la boîte avant reprise. Les erreurs affichées ne contiennent pas les réponses brutes des fournisseurs ni leurs secrets.
 

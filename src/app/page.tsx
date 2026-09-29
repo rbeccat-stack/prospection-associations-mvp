@@ -7,7 +7,9 @@ import { deliveries } from "@/lib/delivery";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const db = getDb();
-  return <Dashboard initialProfile={getLatestProfile(db)} services={serviceStatus()} initialRuns={listRuns(db).map(run => ({ ...run, workflowState: workflow(db, run.id)?.state, deliveryState: deliveries(db, run.id)[0]?.state }))} />;
+export default async function Home() {
+  const db = await getDb();
+  const [profile, runs] = await Promise.all([getLatestProfile(db), listRuns(db)]);
+  const initialRuns = await Promise.all(runs.map(async run => ({ ...run, workflowState: (await workflow(db, run.id))?.state, deliveryState: (await deliveries(db, run.id))[0]?.state })));
+  return <Dashboard initialProfile={profile} services={serviceStatus()} initialRuns={initialRuns} />;
 }

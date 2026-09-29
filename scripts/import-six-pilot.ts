@@ -182,16 +182,14 @@ const checked = pilots.map(pilot => buildPilotDossier(pilot, new Date().toISOStr
 if (process.argv.includes('--check')) {
   console.log(`${checked.length} dossiers pilotes conformes au schéma.`);
 } else {
-  const db = getDb();
-  const profile = getLatestProfile(db);
+  const db = await getDb();
+  const profile = await getLatestProfile(db);
   if (profile?.version !== 4) throw new Error('Le pilote exige le ciblage version 4 comme version courante.');
   const inputs: TestInput[] = pilots.map(pilot => ({ type: 'url', name: pilot.name, url: pilot.url }));
-  const duplicates = findDuplicates(db, inputs);
+  const duplicates = await findDuplicates(db, inputs);
   if (duplicates.length) throw new Error(`Des fiches existent déjà : ${duplicates.map(item => item.label).join(', ')}`);
-  const saved = db.transaction(() => {
-    const runs = createRuns(db, inputs);
-    for (const [index, run] of runs.entries()) saveDossier(db, run.id, checked[index]);
-    return runs.map(run => ({ id: run.id, name: run.label, profileVersion: run.profileVersion }));
-  }).immediate();
+  const runs = await createRuns(db, inputs);
+  for (const [index, run] of runs.entries()) await saveDossier(db, run.id, checked[index]);
+  const saved = runs.map(run => ({ id: run.id, name: run.label, profileVersion: run.profileVersion }));
   console.log(JSON.stringify(saved, null, 2));
 }

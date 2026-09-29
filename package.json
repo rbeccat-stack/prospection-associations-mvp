@@ -10,7 +10,7 @@
     "test": "node --import tsx --test tests/foundations.test.ts tests/v0.test.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "@libsql/client": "^0.18.0",
     "cheerio": "^1.2.0",
     "csv-parse": "^7.0.3",
     "ipaddr.js": "^2.5.0",
@@ -21,7 +21,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.3",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.3.0",
