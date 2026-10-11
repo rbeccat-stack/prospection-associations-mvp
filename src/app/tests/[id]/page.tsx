@@ -5,6 +5,7 @@ import { collection, workflow, revisions } from "@/lib/workflow";
 import { deliveries } from "@/lib/delivery";
 import { serviceStatus } from "@/lib/services";
 import { getDb, getDossier, getRun } from "@/lib/store";
+import { DEFAULT_ASSOCIATION_OFFER } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function TestPage({ params }: { params: Promise<{ id: strin
     <h2 className="original-data-heading">Données du test</h2>
     <div className="detail-grid">
       <section className="panel"><h2>Entrée fournie</h2><dl className="facts"><dt>Mode</dt><dd>{input.type === "url" ? "URL" : input.type === "csv" ? "CSV" : "Saisie manuelle"}</dd><dt>URL</dt><dd>{input.url ? <a href={input.url} target="_blank" rel="noreferrer">{input.url}</a> : "Non renseignée"}</dd><dt>Localisation</dt><dd>{detail?.location || "Non renseignée"}</dd><dt>Activité</dt><dd>{detail?.activity || "Non renseignée"}</dd><dt>Résumé saisi</dt><dd>{detail?.summary || "Non renseigné"}</dd><dt>Note de source</dt><dd>{detail?.sourceNote || "Non renseignée"}</dd></dl></section>
-      <section className="panel"><div className="panel-heading"><h2>Ciblage conservé</h2><span className="version">Version {run.profileVersion}</span></div><dl className="facts"><dt>Nom</dt><dd>{criteria.name}</dd><dt>Votre offre</dt><dd>{criteria.offer || "Non renseignée lors de ce test"}</dd><dt>Zones</dt><dd>{list(criteria.regions)}</dd><dt>Types</dt><dd>{list(criteria.associationTypes)}</dd><dt>Thématiques</dt><dd>{list(criteria.themes)}</dd><dt>Taille</dt><dd>{criteria.sizePreference || "Non renseignée"}</dd><dt>Maturité digitale</dt><dd>{criteria.digitalMaturity || "Non renseignée"}</dd><dt>Signaux</dt><dd>{list(criteria.needsSignals)}</dd><dt>Exclusions</dt><dd>{list(criteria.exclusions)}</dd><dt>Ton</dt><dd>{criteria.tone || "Non renseigné"}</dd></dl></section>
+      <section className="panel"><div className="panel-heading"><h2>Ciblage conservé</h2><span className="version">Version {run.profileVersion}</span></div><dl className="facts"><dt>Nom</dt><dd>{criteria.name}</dd><dt>Votre offre</dt><dd>{criteria.offer || <>{DEFAULT_ASSOCIATION_OFFER}<br /><small className="quiet">Offre par défaut utilisée pour l’analyse ; elle n’était pas enregistrée dans ce ciblage.</small></>}</dd><dt>Zones</dt><dd>{list(criteria.regions)}</dd><dt>Types</dt><dd>{list(criteria.associationTypes)}</dd><dt>Thématiques</dt><dd>{list(criteria.themes)}</dd><dt>Taille</dt><dd>{criteria.sizePreference || "Non renseignée"}</dd><dt>Maturité digitale</dt><dd>{criteria.digitalMaturity || "Non renseignée"}</dd><dt>Signaux</dt><dd>{list(criteria.needsSignals)}</dd><dt>Exclusions</dt><dd>{list(criteria.exclusions)}</dd><dt>Ton</dt><dd>{criteria.tone || "Non renseigné"}</dd></dl></section>
     </div>
     <p className="detail-foot">Identifiant du test : <code>{run.id}</code></p>
   </main>;
