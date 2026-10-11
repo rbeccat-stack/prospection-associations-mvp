@@ -85,6 +85,25 @@ test('adaptateur IA : sortie validée et limite quotidienne appliquée avant un 
   finally { globalThis.fetch = oldFetch; for (const [k,v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } db.close(); }
 });
 
+test('OpenRouter : schéma structuré demandé et réponse tronquée signalée clairement', async () => {
+  const { db, run, content } = await fixture();
+  const vars = { AI_AUTHORIZED: 'true', AI_BASE_URL: 'https://openrouter.ai/api/v1', AI_API_KEY: 'test-key', AI_MODEL: 'deepseek/deepseek-v4.1-flash', AI_DAILY_REQUEST_LIMIT: '5' };
+  const saved = Object.fromEntries(Object.keys(vars).map(k => [k, process.env[k]])); Object.assign(process.env, vars);
+  const oldFetch = globalThis.fetch;
+  const pages = content.sources.map(source => ({ source, text: content.claims.filter(c => c.sourceIds.includes(source.id)).map(c => c.text).join('\n') }));
+  globalThis.fetch = async (_url, options) => {
+    const request = JSON.parse(String(options?.body));
+    assert.equal(request.response_format.type, 'json_schema');
+    assert.equal(request.response_format.json_schema.name, 'association_dossier');
+    assert.ok(request.response_format.json_schema.schema.properties.claims);
+    assert.equal(request.provider.require_parameters, true);
+    assert.equal(request.max_tokens, 6000);
+    return Response.json({ choices: [{ finish_reason: 'length', message: { content: '{"schemaVersion":1' } }] });
+  };
+  try { await assert.rejects(analyze(db, run, pages), /limite de longueur/); }
+  finally { globalThis.fetch = oldFetch; for (const [k,v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } db.close(); }
+});
+
 test('travail : double lancement refusé et traitement interrompu reprenable', async () => {
   const { db, run } = await fixture(); await startWork(db, run.id, 'collecting');
   await assert.rejects(startWork(db, run.id, 'analyzing'), /déjà en cours/);
