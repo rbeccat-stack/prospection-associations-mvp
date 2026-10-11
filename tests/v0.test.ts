@@ -6,7 +6,7 @@ import { createClient } from '@libsql/client';
 import { z } from 'zod';
 import { defaultProfile, dossierSchema } from '../src/lib/schemas';
 import { createRuns, getDossier, getRun, initializeDb, row, run as sqlRun, saveDossier, saveProfile } from '../src/lib/store';
-import { editDraft, revisions, startWork, finishWork, workflow } from '../src/lib/workflow';
+import { editDraft, revisions, startWork, finishWork, workflow, replaceDossier } from '../src/lib/workflow';
 import { collectPage, extractPage, isPublicAddress, publicTarget } from '../src/lib/collector';
 import { analyze, validateAnalysis } from '../src/lib/analysis';
 import { confirmReceipt, deliveries, previewDelivery, reserveDelivery, sendDelivery } from '../src/lib/delivery';
@@ -62,6 +62,45 @@ test('qualification à deux axes : anciens dossiers lisibles et références fac
   db.close();
 });
 
+test('analyse : identifiants IA mal formés remplacés sans perdre les preuves ou les liens', async () => {
+  const { db, run, content } = await fixture();
+  try {
+    const pages = content.sources.map(source => ({ source, text: content.claims.filter(claim => claim.sourceIds.includes(source.id)).map(claim => claim.text).join('\n') + '\n' + content.contacts.filter(contact => contact.sourceIds.includes(source.id)).map(contact => contact.value).join('\n') }));
+    for (const claim of content.claims) claim.evidence = [{ sourceId: claim.sourceIds[0], quote: claim.text }];
+    const modelId = 'observation-8-uuid-mal-forme';
+    const raw = structuredClone(content);
+    raw.claims[0].id = modelId;
+    raw.signals = [{ claimId: modelId, interpretation: 'Interprétation à confirmer.', confidence: 'low' }];
+    raw.qualification = {
+      digitalDebt: { assessment: 'À vérifier.', claimIds: [modelId], unknowns: [] },
+      absorption: { assessment: 'À vérifier.', claimIds: [modelId], unknowns: [] },
+    };
+    raw.matches = [{ criterion: 'Activité locale', status: 'match', explanation: 'Activité décrite par la source.', claimIds: [modelId] }];
+    raw.opportunities = [{ title: 'Premier échange', observation: raw.claims[0].text, service: 'Examiner les processus.', firstDeliverable: 'Cartographie à confirmer.', factClaimIds: [modelId], toVerify: 'Organisation interne.', priority: 'recommended' }];
+    const result = validateAnalysis(raw, pages);
+    const id = result.claims[0].id;
+    assert.ok(z.uuid().safeParse(id).success);
+    assert.notEqual(id, modelId);
+    assert.equal(result.signals[0].claimId, id);
+    assert.deepEqual(result.qualification!.digitalDebt.claimIds, [id]);
+    assert.deepEqual(result.qualification!.absorption.claimIds, [id]);
+    assert.deepEqual(result.matches[0].claimIds, [id]);
+    assert.deepEqual(result.opportunities![0].factClaimIds, [id]);
+    assert.deepEqual(result.claims[0].evidence, raw.claims[0].evidence);
+    assert.deepEqual(result.sources, pages.map(page => page.source));
+    assert.equal(raw.claims[0].id, modelId);
+    await replaceDossier(db, run.id, result, 1);
+    assert.deepEqual((await getDossier(db, run.id))!.content, result);
+
+    const duplicate = structuredClone(raw); duplicate.claims[1].id = modelId;
+    assert.throws(() => validateAnalysis(duplicate, pages), /même référence/);
+    const dangling = structuredClone(raw); dangling.opportunities![0].factClaimIds = ['inexistante'];
+    assert.throws(() => validateAnalysis(dangling, pages), /observation inexistante/);
+    const inventedSource = structuredClone(raw); inventedSource.claims[0].sourceIds = [randomUUID()];
+    assert.throws(() => validateAnalysis(inventedSource, pages), /Source inconnue/);
+  } finally { db.close(); }
+});
+
 test('corrections : ancienne version conservée, conflit refusé et tables cohérentes', async () => {
   const { db, run, content } = await fixture();
   const updated = await editDraft(db, run.id, { ...content.draft, subject: 'Objet corrigé' }, 1);
@@ -96,6 +135,13 @@ test('OpenRouter : schéma structuré demandé et réponse tronquée signalée c
     assert.equal(request.response_format.type, 'json_schema');
     assert.equal(request.response_format.json_schema.name, 'association_dossier');
     assert.ok(request.response_format.json_schema.schema.properties.claims);
+    const output = request.response_format.json_schema.schema.properties;
+    assert.equal(output.claims.items.properties.id.format, undefined);
+    assert.equal(output.signals.items.properties.claimId.format, undefined);
+    assert.equal(output.qualification.properties.digitalDebt.properties.claimIds.items.format, undefined);
+    assert.equal(output.matches.items.properties.claimIds.items.format, undefined);
+    assert.equal(output.opportunities.items.properties.factClaimIds.items.format, undefined);
+    assert.equal(output.sources.items.properties.id.format, 'uuid');
     assert.equal(request.provider.require_parameters, true);
     assert.equal(request.max_tokens, 6000);
     assert.deepEqual(request.reasoning, { enabled: false });
