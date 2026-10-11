@@ -22,6 +22,10 @@ Choisir un fournisseur qui propose une API HTTPS compatible Chat Completions ave
 
 Chaque action transmet le texte des pages choisies, l'entrée de l'association, le ciblage et votre offre au fournisseur. Aucune autre donnée locale n'est transmise. Les pages sont traitées comme des données, sans outils exécutables. La sortie est validée ; ses références doivent appartenir à la collecte, les passages justificatifs doivent exister dans les pages et les contacts doivent y figurer.
 
+Les identifiants des observations sont générés par l’application. Si l’IA relie une qualification à une hypothèse au lieu d’un fait, cette conclusion est laissée « À vérifier » ; une intervention non étayée est retirée. La fiche indique ces corrections dans les réserves et conserve les faits dont les extraits sont vérifiés. Dans ce cas, l’approche devient exploratoire et aucun brouillon IA n’est conservé, afin de ne pas reprendre une conclusion écartée. Une citation inventée, une source inconnue ou un contact absent continuent de faire rejeter la réponse. Aucun nouvel appel payant n’est lancé automatiquement pour réparer une réponse.
+
+Après modification des URL ou du texte manuel, cliquer sur « Collecter ces sources » avant de relancer l’analyse. L’e-mail de test et le téléchargement comprennent aussi les pistes d’intervention, leurs premiers livrables, les points à confirmer et les passages justificatifs.
+
 `AI_DAILY_REQUEST_LIMIT` limite les appels par journée UTC, échecs inclus ; `AI_MAX_OUTPUT_TOKENS` limite la réponse. Ce sont des limites de volume, **pas un plafond monétaire garanti**. Fixer aussi le budget dans le compte du fournisseur avant activation. La compatibilité exacte du modèle et la qualité d'une première réponse réelle restent à vérifier après choix du fournisseur. Les contrôles de citations ne prouvent pas à eux seuls que l'interprétation est correcte.
 
 ## E-mail personnel de test

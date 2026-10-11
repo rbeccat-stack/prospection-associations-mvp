@@ -77,7 +77,9 @@ const qualificationAxisSchema = z.object({
   unknowns: z.array(z.string().trim().min(1).max(300)).max(10),
 }).strict();
 
-export const dossierSchema = z.object({
+// Structural parsing is separate from cross-reference validation for AI ingestion.
+// Persisted dossiers always use dossierSchema below.
+export const dossierStructureSchema = z.object({
   schemaVersion: z.literal(1),
   preparation: z.enum(["manual", "ai_assisted"]),
   associationName: z.string().trim().min(1).max(160),
@@ -130,9 +132,14 @@ export const dossierSchema = z.object({
   confidence: z.enum(["low", "medium", "high"]),
   confidenceReason: z.string().trim().max(1200),
   draft: outreachDraftSchema.optional(),
-}).strict().superRefine((dossier, ctx) => {
+}).strict();
+
+export const dossierSchema = dossierStructureSchema.superRefine((dossier, ctx) => {
   const sources = new Set(dossier.sources.map((source) => source.id));
   const claims = new Set(dossier.claims.map((claim) => claim.id));
+  if (sources.size !== dossier.sources.length || claims.size !== dossier.claims.length) {
+    ctx.addIssue({ code: "custom", path: ["sources"], message: "Les identifiants de sources et d’observations doivent être uniques" });
+  }
   for (const sourceId of [...dossier.summarySourceIds, ...dossier.identity.sourceIds.location, ...dossier.identity.sourceIds.website, ...dossier.identity.sourceIds.activity, ...dossier.approach.sourceIds]) {
     if (!sources.has(sourceId)) ctx.addIssue({ code: "custom", path: ["sources"], message: "Référence de source inconnue" });
   }
@@ -145,6 +152,12 @@ export const dossierSchema = z.object({
     }
   }
   for (const [index, contact] of dossier.contacts.entries()) {
+    if (['form', 'linkedin'].includes(contact.type) && !z.url().refine(value => /^https?:\/\//i.test(value)).safeParse(contact.value).success) {
+      ctx.addIssue({ code: "custom", path: ["contacts", index, "value"], message: "Un lien de contact doit être une URL HTTP(S)" });
+    }
+    if (contact.type === 'email' && !z.email().safeParse(contact.value).success) {
+      ctx.addIssue({ code: "custom", path: ["contacts", index, "value"], message: "Adresse e-mail invalide" });
+    }
     for (const sourceId of contact.sourceIds) {
       if (!sources.has(sourceId)) ctx.addIssue({ code: "custom", path: ["contacts", index, "sourceIds"], message: "Source de contact inconnue" });
     }

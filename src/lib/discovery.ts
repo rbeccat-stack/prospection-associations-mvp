@@ -51,7 +51,7 @@ export function discoveryUrl(page: number): string {
 export function directorySirenFromUrl(raw: string): string | null {
   try {
     const url = new URL(raw);
-    if (url.protocol !== "https:" || url.hash) return null;
+    if (url.protocol !== "https:" || url.hash || url.username || url.password || url.port) return null;
     if (url.hostname === "recherche-entreprises.api.gouv.fr" && url.pathname === "/search" && /^\d{9}$/.test(url.searchParams.get("q") || "") && [...url.searchParams.keys()].every(key => ["q", "per_page"].includes(key))) return url.searchParams.get("q");
     if (url.hostname !== "annuaire-entreprises.data.gouv.fr" || url.search) return null;
     return /^\/entreprise\/(\d{9})\/?$/.exec(url.pathname)?.[1] || null;
@@ -85,7 +85,7 @@ export async function officialRecord(siren: string, fetcher: typeof fetch = fetc
     result.date_creation ? `Date de création déclarée : ${result.date_creation}` : "",
     result.tranche_effectif_salarie === "NN" ? "Tranche d’effectif salarié : inconnue (NN ne signifie pas zéro salarié)" : result.tranche_effectif_salarie ? `Code de tranche d’effectif salarié : ${result.tranche_effectif_salarie} (à interpréter avec l’année et la nomenclature)` : "",
   ].filter(Boolean);
-  return { url, label: `Annuaire public — ${result.nom_complet}`, text: lines.join("\n") };
+  return { url, label: `Annuaire public — ${result.nom_complet}`.slice(0, 200), text: lines.join("\n").slice(0, 18000) };
 }
 
 export async function discoverLyon(page: number, fetcher: typeof fetch = fetch): Promise<DiscoveryPage> {

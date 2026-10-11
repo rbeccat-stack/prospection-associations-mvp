@@ -2,7 +2,7 @@ import { createClient, type Client, type Transaction, type InArgs } from "@libsq
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { canonicalizeUrl, dossierSchema, duplicateKey, inputLabel, targetingProfileSchema, testInputSchema, type Dossier, type TargetingProfile, type TestInput } from "./schemas";
+import { dossierSchema, duplicateKey, inputLabel, targetingProfileSchema, testInputSchema, type Dossier, type TargetingProfile, type TestInput } from "./schemas";
 
 export type Db = Client | Transaction;
 export type StoredProfile = { version: number; criteria: TargetingProfile; createdAt: string };
@@ -136,7 +136,9 @@ export async function createRuns(db: Client, rawInputs: TestInput[], allowDuplic
     const result: StoredRun[] = [];
     for (const input of inputs) {
       const id = randomUUID(), label = inputLabel(input), key = duplicateKey(input);
-      const normalized = input.url ? { ...input, url: canonicalizeUrl(input.url) } : input;
+      // Deduplicate using the canonical key, but collect the actual supplied URL:
+      // www, trailing slashes and query parameters can change the served page.
+      const normalized = input.url ? { ...input, url: new URL(input.url).toString() } : input;
       await run(tx, "INSERT INTO test_runs(id, label, input_type, input_payload, duplicate_key, profile_version, profile_snapshot, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, label, input.type, JSON.stringify(normalized), key, profile.version, JSON.stringify(profile.criteria), "pending_analysis", createdAt]);
       result.push({ id, label, inputType: input.type, input: normalized, duplicateKey: key, profileVersion: profile.version, profileSnapshot: profile.criteria, status: "pending_analysis", dossierReady: false, createdAt });
     }

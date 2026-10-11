@@ -27,11 +27,21 @@ export async function publicTarget(raw: string) {
   return { url, address: addresses[0] };
 }
 
-export function extractPage(html: string) {
+export function extractPage(html: string, baseUrl?: string) {
   const $ = load(html);
   const title = $('title').text().trim().slice(0, 200);
   $('script,style,noscript,iframe,svg,template').remove();
-  $('a[href^="mailto:"]').each((_, element) => { $(element).append(` ${$(element).attr('href')?.slice(7).split('?')[0] || ''}`); });
+  $('a[href]').each((_, element) => {
+    const href = $(element).attr('href') || '';
+    if (/^(mailto:|tel:)/i.test(href)) {
+      $(element).append(` ${href.replace(/^(mailto:|tel:)/i, '').split('?')[0]}`);
+    } else if (baseUrl) {
+      try {
+        const url = new URL(href, baseUrl);
+        if (['http:', 'https:'].includes(url.protocol) && /contact|adh[eé]|inscri|newsletter|b[eé]n[eé]vol|donner|formulaire|linkedin/i.test(`${href} ${$(element).text()}`)) $(element).append(` (${url.href})`);
+      } catch { /* Ignore invalid links; never execute or follow them here. */ }
+    }
+  });
   $('p,br,li,h1,h2,h3,div,section').append('\n');
   const text = $('body').text().replace(/[\t\r ]+/g, ' ').replace(/\n\s*\n/g, '\n').trim().slice(0, 18000);
   return { title, text };
@@ -78,7 +88,7 @@ export async function collectPage(raw: string): Promise<CollectedPage> {
       return { source: { ...source, url: record.url, label: record.label, accessStatus: 'available' }, text: record.text };
     }
     const response = await download(raw, new URL(raw).hostname.replace(/^www\./, ''));
-    const parsed = extractPage(response.html);
+    const parsed = extractPage(response.html, response.url);
     if (parsed.text.length < 80) throw new Error("Contenu insuffisant ou page nécessitant JavaScript.");
     return { source: { ...source, url: response.url, label: parsed.title || source.label, accessStatus: 'available' }, text: parsed.text };
   } catch (error) {

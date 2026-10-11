@@ -11,6 +11,7 @@ export async function collection(db: Db, runId: string): Promise<CollectedPage[]
   return value ? z.array(collectedPageSchema).parse(JSON.parse(value.payload)) : [];
 }
 export async function saveCollection(db: Db, runId: string, pages: CollectedPage[]) {
+  z.array(collectedPageSchema).max(7).parse(pages);
   await run(db, 'INSERT INTO collections VALUES (?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET payload=excluded.payload, created_at=excluded.created_at', [runId, JSON.stringify(pages), new Date().toISOString()]);
 }
 export type Workflow = { state: string; error: string | null; updated_at: string };
@@ -19,11 +20,14 @@ export async function workflow(db: Db, runId: string): Promise<Workflow | null> 
   if (value && ['collecting', 'analyzing'].includes(value.state) && Date.now() - Date.parse(value.updated_at) > 300000) return { ...value, state: 'failed', error: 'Traitement interrompu. Vous pouvez le relancer.' };
   return value;
 }
-export async function startWork(db: Client, runId: string, state: 'collecting' | 'analyzing') {
+export async function startWork(db: Client, runId: string, state: 'collecting' | 'analyzing', expectedRevision?: number) {
   await atomic(db, async tx => {
     if (!await getRun(tx, runId)) throw new HttpError(404, 'Test introuvable.');
     const active = await workflow(tx, runId);
     if (active && ['collecting', 'analyzing'].includes(active.state)) throw new HttpError(409, 'Un traitement est déjà en cours.');
+    if (expectedRevision !== undefined && ((await getDossier(tx, runId))?.revision || 0) !== expectedRevision) {
+      throw new HttpError(409, 'La fiche a changé dans une autre fenêtre. Rechargez la page. Aucun appel IA n’a été consommé.');
+    }
     const now = new Date().toISOString();
     await run(tx, 'INSERT INTO workflows VALUES (?, ?, NULL, ?, ?) ON CONFLICT(run_id) DO UPDATE SET state=excluded.state,error=NULL,started_at=excluded.started_at,updated_at=excluded.updated_at', [runId, state, now, now]);
   });

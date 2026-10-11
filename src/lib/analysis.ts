@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Client } from '@libsql/client';
 import { z } from 'zod';
-import { DEFAULT_ASSOCIATION_OFFER, dossierSchema, type Dossier } from './schemas';
+import { DEFAULT_ASSOCIATION_OFFER, dossierSchema, dossierStructureSchema, type Dossier } from './schemas';
 import type { CollectedPage } from './collector';
 import { atomic, row, run, type StoredRun } from './store';
 import { aiConfig } from './services';
@@ -11,10 +11,50 @@ import { analysisOutputSchema, assignAnalysisClaimIds } from './analysis-identif
 
 const normalized = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fr');
 export function validateAnalysis(raw: unknown, pages: CollectedPage[]): Dossier {
-  const dossier = dossierSchema.parse(assignAnalysisClaimIds(raw));
+  const dossier = dossierStructureSchema.parse(assignAnalysisClaimIds(raw));
   const sources = new Map(pages.map(page => [page.source.id, page]));
   if (dossier.sources.length !== pages.length || new Set(dossier.sources.map(s => s.id)).size !== pages.length || dossier.sources.some(source => !sources.has(source.id))) throw new HttpError(422, 'Analyse rejetée : sources étrangères à la collecte.');
   dossier.sources = pages.map(page => page.source);
+  // An optional conclusion using a hypothesis must not invalidate verified facts.
+  // Never promote that hypothesis to a fact or keep the unsupported conclusion.
+  const facts = new Set(dossier.claims.filter(claim => claim.kind === 'fact').map(claim => claim.id));
+  const corrections: string[] = [];
+  if (dossier.qualification) {
+    for (const axis of ['digitalDebt', 'absorption'] as const) {
+      const value = dossier.qualification[axis];
+      if (!value.claimIds.length) {
+        value.assessment = 'À vérifier : les faits collectés ne suffisent pas à établir cette qualification.';
+      } else if (value.claimIds.some(id => !facts.has(id))) {
+        value.assessment = 'À vérifier : les faits collectés ne suffisent pas à établir cette qualification.';
+        value.claimIds = [];
+        corrections.push(`${axis === 'digitalDebt' ? 'Dette numérique' : 'Capacité à accueillir une mission'} : conclusion IA non étayée, laissée à vérifier.`);
+      }
+    }
+  }
+  const opportunities = dossier.opportunities || [];
+  dossier.opportunities = opportunities.filter(item => item.factClaimIds.every(id => facts.has(id)));
+  if (dossier.opportunities.length !== opportunities.length) corrections.push('Une piste d’intervention sans appui factuel a été retirée.');
+  if (dossier.opportunities.filter(item => item.priority === 'recommended').length > 1) {
+    dossier.opportunities.forEach(item => { item.priority = 'alternative'; });
+    corrections.push('Plusieurs pistes étaient recommandées : leur priorité reste à choisir.');
+  }
+  for (const match of dossier.matches) {
+    if (match.status !== 'unknown' && (!match.claimIds.length || match.claimIds.some(id => !facts.has(id)))) {
+      match.status = 'unknown'; match.claimIds = [];
+      match.explanation = 'Correspondance à vérifier : aucune justification entièrement factuelle.';
+      corrections.push('Une correspondance de ciblage non étayée a été laissée à vérifier.');
+    }
+  }
+  if (corrections.length) {
+    dossier.reservations = [...new Set([...corrections, ...dossier.reservations])].slice(0, 50);
+    dossier.confidence = 'low';
+    dossier.confidenceReason = 'Certaines conclusions de l’IA ont été écartées faute de faits suffisants. Les faits et leurs extraits restent vérifiés dans les sources collectées.';
+    // Outreach can depend on discarded conclusions. Require a human review first.
+    delete dossier.draft;
+    dossier.approach = { angle: 'Échange exploratoire : confirmer les besoins avant de proposer une mission.', rationale: '', sourceIds: [], toVerify: [...new Set(['Valider les qualifications et les pistes avec l’association.', ...dossier.approach.toVerify])].slice(0, 20) };
+  }
+  // Validate against authoritative collected sources, not model-supplied statuses.
+  dossierSchema.parse(dossier);
   const backed = (ids: string[]) => ids.some(id => sources.get(id)?.source.accessStatus === 'available');
   if ((dossier.summary && !backed(dossier.summarySourceIds)) || (dossier.approach.rationale && !backed(dossier.approach.sourceIds))) throw new HttpError(422, 'Analyse rejetée : résumé ou approche sans source disponible.');
   for (const field of ['location', 'website', 'activity'] as const) {
@@ -29,8 +69,12 @@ export function validateAnalysis(raw: unknown, pages: CollectedPage[]): Dossier 
     }
   }
   for (const contact of dossier.contacts) {
-    const compact = (text: string) => contact.type === 'phone' ? text.replace(/[^0-9+]/g, '') : normalized(text);
-    if (!contact.sourceIds.some(id => { const page = sources.get(id); return page?.source.accessStatus === 'available' && compact(page.text).includes(compact(contact.value)); })) throw new HttpError(422, 'Analyse rejetée : contact absent des pages collectées.');
+    const present = (text: string) => {
+      if (contact.type !== 'phone') return normalized(text).includes(normalized(contact.value));
+      const digits = contact.value.replace(/\D/g, '');
+      return digits.length >= 8 && (text.match(/\+?\d[\d ().\-\u00a0]{6,}\d/g) || []).some(candidate => candidate.replace(/\D/g, '') === digits);
+    };
+    if (!contact.sourceIds.some(id => { const page = sources.get(id); return page?.source.accessStatus === 'available' && present(page.text); })) throw new HttpError(422, 'Analyse rejetée : contact absent des pages collectées.');
   }
   dossier.preparation = 'ai_assisted';
   return dossierSchema.parse(dossier);
@@ -61,7 +105,7 @@ Chaque fait doit inclure evidence avec un extrait exact très court (160 caract�
         response_format: openRouter ? { type: 'json_schema', json_schema: { name: 'association_dossier', strict: false, schema } } : { type: 'json_object' },
         ...(openRouter ? { provider: { require_parameters: true } } : {}),
         ...(openRouter && config.model === 'deepseek/deepseek-v4.1-flash' ? { reasoning: { enabled: false } } : {}),
-        messages: [{ role: 'system', content: instructions }, { role: 'user', content: JSON.stringify({ association: runInfo.input, criteria: { ...runInfo.profileSnapshot, offer: runInfo.profileSnapshot.offer || DEFAULT_ASSOCIATION_OFFER }, pages }) }] }),
+        messages: [{ role: 'system', content: instructions + '\nContrôle final : qualification.*.claimIds et opportunities.factClaimIds ne doivent contenir que des identifiants de claims dont kind vaut fact, avec une citation exacte. Si un axe reste inconnu, écris « À vérifier » et utilise claimIds: []. Ne relie jamais une qualification à une hypothèse ou un inconnu. Le siège national et une implantation lyonnaise sont distincts : précise lequel la source décrit.' }, { role: 'user', content: JSON.stringify({ association: runInfo.input, criteria: { ...runInfo.profileSnapshot, offer: runInfo.profileSnapshot.offer || DEFAULT_ASSOCIATION_OFFER }, pages }) }] }),
     });
   } catch { throw new HttpError(502, "Le fournisseur IA n'a pas répondu. Aucun dossier n'a été remplacé ; vous pouvez réessayer."); }
   if (!response.ok) throw new HttpError(502, `Le fournisseur IA a refusé la demande (HTTP ${response.status}). Vérifiez sa configuration ou son quota.`);

@@ -9,10 +9,14 @@ import { createRuns, getDossier, getRun, initializeDb, row, run as sqlRun, saveD
 import { editDraft, revisions, startWork, finishWork, workflow, replaceDossier } from '../src/lib/workflow';
 import { collectPage, extractPage, isPublicAddress, publicTarget } from '../src/lib/collector';
 import { analyze, validateAnalysis } from '../src/lib/analysis';
-import { confirmReceipt, deliveries, previewDelivery, reserveDelivery, sendDelivery } from '../src/lib/delivery';
+import { confirmReceipt, deliveries, deliveryText, previewDelivery, reserveDelivery, sendDelivery } from '../src/lib/delivery';
 import { readLocalJson } from '../src/lib/http';
 import { NextRequest } from 'next/server';
 import { proxy } from '../src/proxy';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { TestWorkspace } from '../src/components/TestWorkspace';
 
 async function fixture() {
   const db = createClient({ url: 'file::memory:' }); await initializeDb(db); await saveProfile(db, defaultProfile);
@@ -98,6 +102,99 @@ test('analyse : identifiants IA mal formés remplacés sans perdre les preuves o
     assert.throws(() => validateAnalysis(dangling, pages), /observation inexistante/);
     const inventedSource = structuredClone(raw); inventedSource.claims[0].sourceIds = [randomUUID()];
     assert.throws(() => validateAnalysis(inventedSource, pages), /Source inconnue/);
+  } finally { db.close(); }
+});
+
+test('analyse : hypothèse dans une qualification conservée comme incertitude, sans perdre les faits', async () => {
+  const { db, run, content } = await fixture();
+  try {
+    const pages = content.sources.map(source => ({ source, text: content.claims.filter(c => c.sourceIds.includes(source.id)).map(c => c.text).join('\n') + '\n' + content.contacts.filter(c => c.sourceIds.includes(source.id)).map(c => c.value).join('\n') }));
+    for (const claim of content.claims) if (claim.kind === 'fact') claim.evidence = [{ sourceId: claim.sourceIds[0], quote: claim.text }];
+    const fact = content.claims.find(c => c.kind === 'fact')!;
+    const hypothesis = { id: randomUUID(), text: 'Un CRM pourrait être utile.', kind: 'hypothesis' as const, sourceIds: [], verification: 'to_verify' as const, evidence: [] };
+    content.claims.push(hypothesis);
+    content.qualification = {
+      digitalDebt: { assessment: 'Besoin important de CRM.', claimIds: [fact.id, hypothesis.id], unknowns: ['Outils internes'] },
+      absorption: { assessment: 'Signal décrit.', claimIds: [fact.id], unknowns: [] },
+    };
+    const opportunity = { title: 'Examiner les processus', observation: fact.text, service: 'Atelier exploratoire', firstDeliverable: 'Cartographie', factClaimIds: [fact.id], toVerify: 'Besoins réels', priority: 'recommended' as const };
+    content.opportunities = [opportunity, { ...opportunity, title: 'CRM non étayé', factClaimIds: [hypothesis.id] }];
+    content.matches = [{ criterion: 'Besoin de CRM', status: 'match', explanation: 'Non prouvé.', claimIds: [hypothesis.id] }];
+    assert.throws(() => dossierSchema.parse(content), /qualification exige un fait sourcé/);
+    const result = validateAnalysis(content, pages);
+    assert.deepEqual(result.qualification!.digitalDebt.claimIds, []);
+    assert.match(result.qualification!.digitalDebt.assessment, /À vérifier/);
+    assert.equal(result.qualification!.absorption.assessment, 'Signal décrit.');
+    assert.equal(result.claims.find(c => c.text === hypothesis.text)!.kind, 'hypothesis');
+    assert.deepEqual(result.claims.filter(c => c.kind === 'fact').map(c => c.text), content.claims.filter(c => c.kind === 'fact').map(c => c.text));
+    assert.equal(result.opportunities!.length, 1);
+    assert.equal(result.matches[0].status, 'unknown');
+    assert.equal(result.draft, undefined);
+    assert.equal(result.confidence, 'low');
+    assert.ok(result.reservations.some(text => text.includes('conclusion IA non étayée')));
+    assert.equal(content.qualification.digitalDebt.assessment, 'Besoin important de CRM.');
+    const saved = await replaceDossier(db, run.id, result, 1);
+    const email = deliveryText(saved, defaultProfile);
+    for (const value of [opportunity.title, opportunity.service, opportunity.firstDeliverable, opportunity.toVerify, fact.evidence[0].quote]) assert.ok(email.includes(value));
+    assert.match(email, /INTERVENTIONS POSSIBLES/);
+    assert.equal((await revisions(db, run.id)).length, 1);
+
+    const invalidProof = structuredClone(content); invalidProof.claims[0].evidence[0].quote = 'Une citation absente des sources collectées.';
+    assert.throws(() => validateAnalysis(invalidProof, pages), /passage cité/);
+  } finally { db.close(); }
+});
+
+test('sécurité : faux statuts de sources, liens de contact actifs et faux téléphones refusés', async () => {
+  const { db, content } = await fixture();
+  try {
+    const pages = content.sources.map(source => ({ source, text: content.claims.filter(c => c.sourceIds.includes(source.id)).map(c => c.text).join('\n') + '\n' + content.contacts.filter(c => c.sourceIds.includes(source.id)).map(c => c.value).join('\n') }));
+    for (const claim of content.claims) if (claim.kind === 'fact') claim.evidence = [{ sourceId: claim.sourceIds[0], quote: claim.text }];
+    const unsafe = structuredClone(content);
+    unsafe.contacts = [{ type: 'form', label: 'Formulaire', value: 'javascript:alert(1)', sourceIds: [content.sources[0].id] }];
+    assert.throws(() => dossierSchema.parse(unsafe), /HTTP\(S\)/);
+    const unavailable = pages.map(p => ({ ...p, source: { ...p.source, accessStatus: 'unavailable' as const } }));
+    assert.throws(() => validateAnalysis(content, unavailable), /source consultable/);
+    const phone = structuredClone(content);
+    phone.contacts = [{ type: 'phone', label: 'Téléphone', value: 'abc', sourceIds: [content.sources[0].id] }];
+    assert.throws(() => validateAnalysis(phone, pages), /contact absent/);
+    phone.contacts[0].value = '04 12 34 56 78';
+    const splitDigits = pages.map(p => ({ ...p, text: p.text + '\n04 personnes, 12 ateliers, 34 bénévoles, 56 réunions, 78 membres.' }));
+    assert.throws(() => validateAnalysis(phone, splitDigits), /contact absent/);
+    assert.equal(validateAnalysis(phone, pages.map(p => ({ ...p, text: p.text + '\nTéléphone : 04.12.34.56.78' }))).contacts[0].value, '04 12 34 56 78');
+  } finally { db.close(); }
+});
+
+test('collecte : liens de contact et téléphones préservés, protocoles dangereux ignorés', () => {
+  const result = extractPage('<p>Association locale.</p><a href="/contact">Contact</a><a href="tel:0412345678">Téléphoner</a><a href="javascript:alert(1)">Formulaire</a>', 'https://association.example/');
+  assert.ok(result.text.includes('https://association.example/contact'));
+  assert.ok(result.text.includes('0412345678'));
+  assert.ok(!result.text.includes('javascript:'));
+});
+
+test('analyse : conflit de version refusé avant le travail et la consommation IA', async () => {
+  const { db, run } = await fixture();
+  try {
+    await assert.rejects(startWork(db, run.id, 'analyzing', 0), /Aucun appel IA/);
+    assert.equal(await workflow(db, run.id), null);
+    assert.equal((await row<{ n: number }>(db, 'SELECT COUNT(*) n FROM ai_calls'))!.n, 0);
+    await startWork(db, run.id, 'analyzing', 1);
+    assert.equal((await workflow(db, run.id))!.state, 'analyzing');
+  } finally { db.close(); }
+});
+
+test('interface : message de traitement unique et état actif explicite après rechargement', async () => {
+  const { db, run } = await fixture();
+  try {
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'test' };
+    const props = { run, dossier: null, pages: [], services: { aiReady: true, aiModel: 'test', dailyLimit: 5, mailReady: false, recipient: '' }, history: [], sent: [] };
+    const error = 'Analyse de test rejetée.';
+    const render = (state: string, failure: string | null) => renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(TestWorkspace, { ...props, work: { state, error: failure, updated_at: new Date().toISOString() } })));
+    const failed = render('failed', error);
+    assert.equal(failed.split(error).length - 1, 1);
+    const active = render('analyzing', error);
+    assert.ok(!active.includes(error));
+    assert.match(active, /Traitement en cours/);
+    assert.match(active, /role="status"/);
   } finally { db.close(); }
 });
 
@@ -193,6 +290,7 @@ test('livraison : destinataire fixe, même contenu, double clic et reprise maît
 });
 
 test('écritures : origine extérieure et contenus non JSON refusés', async () => {
+  await assert.rejects(readLocalJson(new Request('http://127.0.0.1:3000/api/tests', { method: 'POST', headers: { origin: 'null', 'content-type': 'application/json' }, body: '{}' })), /provenir de cette application/);
   await assert.rejects(readLocalJson(new Request('http://127.0.0.1:3000/api/tests', { method: 'POST', headers: { origin: 'https://example.com', 'content-type': 'application/json' }, body: '{}' })), /provenir de cette application/);
   await assert.rejects(readLocalJson(new Request('http://127.0.0.1:3000/api/tests', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' })), /JSON/);
 });

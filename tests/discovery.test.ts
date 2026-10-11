@@ -39,6 +39,8 @@ test("collecte : la page JavaScript de l’annuaire est remplacée par son API o
   assert.equal(directorySirenFromUrl(url), "814392452");
   assert.equal(directorySirenFromUrl("https://recherche-entreprises.api.gouv.fr/search?q=814392452&per_page=1"), "814392452");
   assert.equal(directorySirenFromUrl("https://example.org/entreprise/814392452"), null);
+  assert.equal(directorySirenFromUrl("https://user:pass@annuaire-entreprises.data.gouv.fr/entreprise/814392452"), null);
+  assert.equal(directorySirenFromUrl("https://annuaire-entreprises.data.gouv.fr:8443/entreprise/814392452"), null);
   const oldFetch = globalThis.fetch;
   globalThis.fetch = async input => {
     assert.ok(String(input).includes("q=814392452"));

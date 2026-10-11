@@ -4,7 +4,9 @@ import { DuplicateError } from "./store";
 export async function readLocalJson(request: Request): Promise<unknown> {
   const url = new URL(request.url);
   const origin = request.headers.get("origin");
-  const originUrl = origin ? new URL(origin) : null;
+  let originUrl: URL | null = null;
+  try { originUrl = origin ? new URL(origin) : null; }
+  catch { throw new HttpError(403, "Cette action doit provenir de cette application."); }
   if (originUrl && originUrl.origin !== url.origin) {
     throw new HttpError(403, "Cette action doit provenir de cette application.");
   }

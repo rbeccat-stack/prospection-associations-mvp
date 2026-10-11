@@ -26,7 +26,9 @@ test("un doublon est signalé et un nouveau test explicite préserve l’histori
   await saveProfile(db, defaultProfile);
   const first: TestInput = { type: "url", url: "https://www.exemple.org/?utm_source=test", name: "Exemple" };
   const second: TestInput = { type: "url", url: "https://exemple.org", name: "Exemple revu" };
-  await createRuns(db, [first]);
+  const [original] = await createRuns(db, [first]);
+  assert.equal(original.input.url, first.url);
+  assert.equal((await getRun(db, original.id))!.input.url, first.url);
   await assert.rejects(createRuns(db, [second]), DuplicateError);
   assert.equal((await listRuns(db)).length, 1);
   await createRuns(db, [second], true);

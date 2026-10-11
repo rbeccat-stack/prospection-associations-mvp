@@ -9,6 +9,8 @@ import { analyze } from '@/lib/analysis';
 import { confirmReceipt, previewDelivery, sendDelivery } from '@/lib/delivery';
 
 export const runtime = 'nodejs';
+// Leave time to validate and save after the provider's 90-second deadline.
+export const maxDuration = 120;
 const actionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('collect'), urls: z.array(z.url().refine(url => /^https?:\/\//.test(url))).max(6), manualText: z.string().trim().max(18000).default('') }).strict(),
   z.object({ action: z.literal('analyze'), revision: z.number().int().nonnegative(), replace: z.boolean().default(false) }).strict(),
@@ -38,7 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     if (input.action === 'analyze') {
       if (input.revision > 0 && !input.replace) throw new HttpError(409, 'Confirmez la création d’une nouvelle version du dossier.');
-      await startWork(db, id, 'analyzing'); working = true;
+      await startWork(db, id, 'analyzing', input.revision); working = true;
       const content = await analyze(db, run, await collection(db, id));
       const dossier = await replaceDossier(db, id, content, input.revision);
       await finishWork(db, id, 'ready');
