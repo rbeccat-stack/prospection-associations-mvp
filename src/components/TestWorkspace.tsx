@@ -42,6 +42,7 @@ export function TestWorkspace({ run, dossier, pages, work, services, history, se
     return () => clearInterval(timer);
   }, [busy, work?.state, router]);
   const needsSource = associationSourceRequired(run.input, pages);
+  const diagnosticId = (error || work?.error || '').match(/Diagnostic IA : ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\./i)?.[1];
   const siteSearch = `https://www.google.com/search?q=${encodeURIComponent(`${run.label} association Lyon site officiel`)}`;
   async function action(actionName: string, data: Record<string, unknown> = {}) {
     if (requestPending.current) return;
@@ -78,6 +79,7 @@ export function TestWorkspace({ run, dossier, pages, work, services, history, se
       {work?.error && !error && !active && <p className="warning">Dernier traitement : {work.error}</p>}
       {(active || message) && <p className="form-message" role="status">{active ? 'Traitement en cours. Vous pouvez consulter le reste de la fiche.' : message}</p>}
       {error && <p role="alert" className="warning">{error}</p>}
+      {!active && diagnosticId && <p><a href={`/api/tests/${run.id}/diagnostics/${diagnosticId}`} download>Télécharger le diagnostic de cette analyse</a><br /><span className="field-help">À transmettre pour comprendre l’échec. Ne contient ni clé API ni texte des sources. Le téléchargement ne consomme aucun appel IA.</span></p>}
     </section>
     {dossier && <>
       <DossierView dossier={dossier.content} showDraft={false} />

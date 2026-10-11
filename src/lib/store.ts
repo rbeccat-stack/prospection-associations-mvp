@@ -47,6 +47,7 @@ const schema = [
   `CREATE TABLE IF NOT EXISTS collections (run_id TEXT PRIMARY KEY REFERENCES test_runs(id), payload TEXT NOT NULL, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS workflows (run_id TEXT PRIMARY KEY REFERENCES test_runs(id), state TEXT NOT NULL, error TEXT, started_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS ai_calls (id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES test_runs(id), created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS analysis_diagnostics (id TEXT PRIMARY KEY REFERENCES ai_calls(id), run_id TEXT NOT NULL REFERENCES test_runs(id), payload TEXT NOT NULL, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS deliveries (id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES test_runs(id), revision INTEGER NOT NULL, recipient TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, state TEXT NOT NULL, provider_id TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(run_id, revision))`,
   `CREATE TABLE IF NOT EXISTS delivery_previews (id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES test_runs(id), revision INTEGER NOT NULL, recipient TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS delivery_attempts (id TEXT PRIMARY KEY, delivery_id TEXT NOT NULL REFERENCES deliveries(id), state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL)`,

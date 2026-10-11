@@ -59,7 +59,7 @@ async function download(raw: string, originalHost: string, redirects = 0): Promi
     }, (response) => {
       const status = response.statusCode || 0;
       if ([301, 302, 303, 307, 308].includes(status) && response.headers.location) { response.resume(); resolve({ html: '', location: response.headers.location }); return; }
-      if (status !== 200) { response.resume(); reject(new Error(`Le site répond HTTP ${status}.`)); return; }
+      if (status !== 200) { response.resume(); reject(new Error(status === 403 ? 'Le site refuse l’accès à cette page depuis le serveur de collecte (HTTP 403). Cela ne vient pas de votre clé IA. Ajoutez une autre source publique décrivant cette association, puis recollectez.' : `Le site répond HTTP ${status}.`)); return; }
       if (!/^(text\/html|text\/plain|application\/xhtml\+xml)/i.test(response.headers['content-type'] || '')) { response.resume(); reject(new Error("Cette page n'est pas un document HTML ou texte.")); return; }
       let size = 0;
       const chunks: Buffer[] = [];

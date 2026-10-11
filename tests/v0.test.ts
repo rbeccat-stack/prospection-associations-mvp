@@ -9,6 +9,8 @@ import { createRuns, getDossier, getRun, initializeDb, row, run as sqlRun, saveD
 import { editDraft, revisions, startWork, finishWork, workflow, replaceDossier } from '../src/lib/workflow';
 import { collectPage, extractPage, isPublicAddress, publicTarget } from '../src/lib/collector';
 import { analyze, validateAnalysis } from '../src/lib/analysis';
+import { analysisOutputSchema } from '../src/lib/analysis-identifiers';
+import { diagnosticIssues, getAnalysisDiagnostic, responseShape } from '../src/lib/analysis-diagnostics';
 import { confirmReceipt, deliveries, deliveryText, previewDelivery, reserveDelivery, sendDelivery } from '../src/lib/delivery';
 import { readLocalJson } from '../src/lib/http';
 import { NextRequest } from 'next/server';
@@ -17,6 +19,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { TestWorkspace } from '../src/components/TestWorkspace';
+import { GET as downloadDiagnostic } from '../src/app/api/tests/[id]/diagnostics/[attemptId]/route';
 
 async function fixture() {
   const db = createClient({ url: 'file::memory:' }); await initializeDb(db); await saveProfile(db, defaultProfile);
@@ -230,6 +233,11 @@ test('interface : message de traitement unique et état actif explicite après r
     assert.ok(!active.includes(error));
     assert.match(active, /Traitement en cours/);
     assert.match(active, /role="status"/);
+    const attemptId = randomUUID();
+    const withDiagnostic = render('failed', `Format invalide. Diagnostic IA : ${attemptId}.`);
+    assert.match(withDiagnostic, /Télécharger le diagnostic de cette analyse/);
+    assert.ok(withDiagnostic.includes(`/api/tests/${run.id}/diagnostics/${attemptId}`));
+    assert.ok(!active.includes('Télécharger le diagnostic'));
   } finally { db.close(); }
 });
 
@@ -266,20 +274,23 @@ test('OpenRouter : schéma structuré demandé et réponse tronquée signalée c
     const request = JSON.parse(String(options?.body));
     assert.equal(request.response_format.type, 'json_schema');
     assert.equal(request.response_format.json_schema.name, 'association_dossier');
+    assert.equal(request.response_format.json_schema.strict, true);
+    assert.ok(request.messages[0].content.includes(JSON.stringify(request.response_format.json_schema.schema)));
     assert.ok(request.response_format.json_schema.schema.properties.claims);
     const output = request.response_format.json_schema.schema.properties;
     assert.equal(output.claims.items.properties.id.format, undefined);
     assert.equal(output.signals.items.properties.claimId.format, undefined);
-    assert.equal(output.qualification.properties.digitalDebt.properties.claimIds.items.format, undefined);
+    assert.equal(output.qualification.anyOf[0].properties.digitalDebt.properties.claimIds.items.format, undefined);
     assert.equal(output.matches.items.properties.claimIds.items.format, undefined);
-    assert.equal(output.opportunities.items.properties.factClaimIds.items.format, undefined);
+    assert.equal(output.opportunities.anyOf[0].items.properties.factClaimIds.items.format, undefined);
     assert.equal(output.schemaVersion, undefined);
     assert.equal(output.preparation, undefined);
     assert.equal(output.sources, undefined);
     assert.equal(output.claims.items.properties.verification, undefined);
-    assert.equal(output.draft.properties.state, undefined);
-    assert.equal(output.claims.items.properties.sourceIds.items.format, 'uuid');
-    assert.equal(output.claims.items.properties.evidence.items.properties.sourceId.format, 'uuid');
+    assert.equal(output.draft.anyOf[0].properties.state, undefined);
+    const sourceIds = pages.filter(p => p.source.accessStatus === 'available').map(p => p.source.id);
+    assert.deepEqual(output.claims.items.properties.sourceIds.items.enum, sourceIds);
+    assert.deepEqual(output.claims.items.properties.evidence.items.properties.sourceId.enum, sourceIds);
     assert.equal(request.provider.require_parameters, true);
     assert.equal(request.max_tokens, 6000);
     assert.deepEqual(request.reasoning, { enabled: false });
@@ -287,6 +298,106 @@ test('OpenRouter : schéma structuré demandé et réponse tronquée signalée c
   };
   try { await assert.rejects(analyze(db, run, pages), /limite de longueur/); }
   finally { globalThis.fetch = oldFetch; for (const [k,v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } db.close(); }
+});
+
+test('contrat strict : toutes les propriétés requises, objets fermés et valeurs optionnelles nullables', async () => {
+  const { db, content } = await fixture();
+  try {
+    const schema = analysisOutputSchema();
+    const check = (node: unknown) => {
+      if (!node || typeof node !== 'object') return;
+      const item = node as Record<string, unknown>;
+      if (item.properties) {
+        assert.deepEqual(item.required, Object.keys(item.properties));
+        assert.equal(item.additionalProperties, false);
+      }
+      for (const key of ['$schema', 'default', 'format', 'pattern']) assert.equal(item[key], undefined);
+      Object.values(item).forEach(check);
+    };
+    check(schema);
+    const fromSchema = z.fromJSONSchema(schema);
+    // Build a provider-style response: only requested fields; no storage metadata.
+    function wire(node: Record<string, unknown>, value: unknown): unknown {
+      if (Array.isArray(node.anyOf)) {
+        if (value === undefined || value === null) return null;
+        return wire(node.anyOf[0] as Record<string, unknown>, value);
+      }
+      if (node.properties && value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(node.properties).map(([key, spec]) => [key, wire(spec as Record<string, unknown>, (value as Record<string, unknown>)[key])]));
+      }
+      if (node.items && Array.isArray(value)) return value.map(item => wire(node.items as Record<string, unknown>, item));
+      return value;
+    }
+    const pages = content.sources.map(source => ({ source, text: content.claims.filter(c => c.sourceIds.includes(source.id)).map(c => c.text).join('\n') + '\n' + content.contacts.filter(c => c.sourceIds.includes(source.id)).map(c => c.value).join('\n') }));
+    for (const claim of content.claims) if (claim.kind === 'fact') claim.evidence = [{ sourceId: claim.sourceIds[0], quote: claim.text }];
+    const providerContent = wire(schema, content) as Record<string, unknown>;
+    assert.ok(fromSchema.safeParse(providerContent).success);
+    assert.equal(providerContent.schemaVersion, undefined);
+    assert.equal(validateAnalysis(providerContent, pages).associationName, content.associationName);
+    assert.equal(fromSchema.safeParse({ ...providerContent, associationName: undefined }).success, false);
+    assert.equal(fromSchema.safeParse({ dossier: providerContent }).success, false);
+    assert.equal(fromSchema.safeParse({ ...providerContent, extra: true }).success, false);
+    const raw = { ...content, qualification: null, opportunities: null, draft: null, identity: { ...content.identity, website: null } };
+    const result = validateAnalysis(raw, pages);
+    assert.equal(result.draft, undefined);
+    assert.equal(result.identity.website, undefined);
+    assert.equal(raw.draft, null);
+    assert.throws(() => validateAnalysis({ ...raw, associationName: null }, pages));
+    assert.throws(() => validateAnalysis({ ...raw, claims: null }, pages));
+  } finally { db.close(); }
+});
+
+test('échecs fournisseur : diagnostic durable, aucun dossier remplacé ni nouvelle tentative payante', async () => {
+  const { db, run, content } = await fixture();
+  const vars = { AI_AUTHORIZED: 'true', AI_BASE_URL: 'https://openrouter.ai/api/v1', AI_API_KEY: 'secret-key-not-to-log', AI_MODEL: 'deepseek/deepseek-v4.1-flash', AI_DAILY_REQUEST_LIMIT: '20' };
+  const saved = Object.fromEntries(Object.keys(vars).map(k => [k, process.env[k]])); Object.assign(process.env, vars);
+  const oldFetch = globalThis.fetch;
+  const previousDb = globalThis.__prospectionDb;
+  globalThis.__prospectionDb = Promise.resolve(db);
+  let calls = 0;
+  const pages = content.sources.map(source => ({ source, text: 'Texte des sources confidentiel.' }));
+  const missingName = { ...content, associationName: undefined };
+  const wrapped = { dossier: content };
+  const modelResponse = (value: unknown) => ({ id: 'gen-test', provider: 'TestProvider', model: vars.AI_MODEL, choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(value) } }] });
+  const cases = [
+    { envelope: null, stage: 'envelope' },
+    { envelope: { error: { message: 'SECRET PROVIDER ERROR' } }, stage: 'envelope' },
+    { envelope: modelResponse(missingName), stage: 'validation' },
+    { envelope: modelResponse(wrapped), stage: 'validation' },
+    { envelope: modelResponse(null), stage: 'validation' },
+    { envelope: { choices: [{ finish_reason: 'stop', message: { content: 'INVALID PRIVATE TEXT' } }] }, stage: 'json' },
+    { envelope: { choices: [{ finish_reason: 'length', message: { content: '{}' } }] }, stage: 'envelope' },
+    { envelope: { choices: [{ finish_reason: 'stop', message: { content: null, refusal: 'PRIVATE REFUSAL' } }] }, stage: 'envelope' },
+  ];
+  try {
+    for (const item of cases) {
+      globalThis.fetch = async () => { calls++; return Response.json(item.envelope); };
+      let failure = '';
+      await assert.rejects(analyze(db, run, pages), error => { failure = (error as Error).message; return /Diagnostic IA/.test(failure); });
+      const id = failure.match(/Diagnostic IA : ([0-9a-f-]+)\./)![1];
+      const diagnostic = await getAnalysisDiagnostic(db, run.id, id);
+      assert.equal(diagnostic!.stage, item.stage);
+      assert.equal(diagnostic!.outcome, 'failed');
+      const report = JSON.stringify(diagnostic);
+      for (const secret of ['secret-key-not-to-log', content.summary, 'Texte des sources', 'SECRET PROVIDER ERROR', 'INVALID PRIVATE TEXT', 'PRIVATE REFUSAL']) assert.ok(!report.includes(secret));
+      assert.equal(await getAnalysisDiagnostic(db, randomUUID(), id), null);
+      const download = await downloadDiagnostic(new Request('https://app.example/diagnostic'), { params: Promise.resolve({ id: run.id, attemptId: id }) });
+      assert.equal(download.status, 200);
+      assert.equal(download.headers.get('cache-control'), 'private, no-store');
+      assert.match(download.headers.get('content-disposition')!, /attachment/);
+      assert.deepEqual(await download.json(), diagnostic);
+      const wrongRun = await downloadDiagnostic(new Request('https://app.example/diagnostic'), { params: Promise.resolve({ id: randomUUID(), attemptId: id }) });
+      assert.equal(wrongRun.status, 404);
+      assert.equal((await getDossier(db, run.id))!.revision, 1);
+      if (item.envelope === cases[2].envelope) assert.ok(diagnostic!.issues!.some(issue => issue.path.join('.') === 'associationName'));
+      if (item.envelope === cases[3].envelope) assert.deepEqual(diagnostic!.rootFields, ['dossier']);
+    }
+    assert.equal(calls, cases.length);
+    assert.equal((await row<{ n: number }>(db, 'SELECT COUNT(*) n FROM ai_calls'))!.n, cases.length);
+    assert.deepEqual(responseShape({ 'secret@example.com': 'secret' }).rootFields, ['[autre champ]']);
+    const unsafeIssue = z.object({}).strict().safeParse({ secret: 'not-to-export' });
+    assert.ok(!JSON.stringify(diagnosticIssues(unsafeIssue.error)).includes('not-to-export'));
+  } finally { globalThis.fetch = oldFetch; globalThis.__prospectionDb = previousDb; for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } db.close(); }
 });
 
 test('travail : double lancement refusé et traitement interrompu reprenable', async () => {

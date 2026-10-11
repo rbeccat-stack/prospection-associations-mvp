@@ -10,7 +10,7 @@ function object(value: unknown): value is Record<string, unknown> {
 
 // Ask for analysis content only. Storage versions, source records and draft state
 // are owned by the server, not by the model.
-export function analysisOutputSchema() {
+export function analysisOutputSchema(pages?: CollectedPage[]) {
   const schema = z.toJSONSchema(dossierStructureSchema.omit({ schemaVersion: true, preparation: true, sources: true }).extend({
     draft: outreachDraftSchema.omit({ state: true }).optional(),
   }));
@@ -35,12 +35,39 @@ export function analysisOutputSchema() {
     }
   }
   visit(schema);
+  // Use the common strict-output subset: every property is required, optional
+  // values are explicitly nullable, and no object accepts extra keys. UUID/URL
+  // formats and size constraints remain enforced by Zod after generation.
+  function strict(node: unknown): void {
+    if (!object(node)) return;
+    if (node.format === 'uuid' && pages) {
+      node.enum = pages.filter(page => page.source.accessStatus === 'available').map(page => page.source.id);
+    }
+    for (const key of ['$schema', 'default', 'format', 'pattern', 'minLength', 'maxLength', 'minItems', 'maxItems']) delete node[key];
+    if (object(node.properties)) {
+      const required = Array.isArray(node.required) ? node.required : [];
+      for (const [key, value] of Object.entries(node.properties)) {
+        strict(value);
+        if (!required.includes(key)) node.properties[key] = { anyOf: [value, { type: 'null' }] };
+      }
+      node.required = Object.keys(node.properties);
+      node.additionalProperties = false;
+    }
+    if (node.items) strict(node.items);
+    if (Array.isArray(node.anyOf)) node.anyOf.forEach(strict);
+  }
+  strict(schema);
   return schema;
 }
 
 export function prepareAnalysisPayload(raw: unknown, pages: CollectedPage[]): unknown {
   if (!object(raw)) return raw;
   const content = structuredClone(raw);
+  // Nullable optional values belong to the wire contract, not stored dossiers.
+  for (const key of ['qualification', 'opportunities', 'draft']) if (content[key] === null) delete content[key];
+  if (object(content.identity)) {
+    for (const key of ['location', 'website', 'activity']) if (content.identity[key] === null) delete content.identity[key];
+  }
   content.schemaVersion = 1;
   content.preparation = 'ai_assisted';
   content.sources = pages.map(page => structuredClone(page.source));
