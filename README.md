@@ -19,7 +19,7 @@ La collecte, l’édition, les versions, la prévisualisation et le télécharge
 
 1. Enregistrer le ciblage et votre offre.
 2. Utiliser « Trouver des associations à Lyon » ou ajouter une association manuellement, puis ouvrir sa fiche. L’annuaire confirme une implantation et un statut administratif, pas un besoin de prestation.
-3. Indiquer jusqu’à six URL, notamment le site de l’association et ses pages activité, agenda, adhésion et contact ; ajouter si utile des informations manuelles. Cliquer sur « Collecter ces sources ».
+3. Indiquer jusqu’à six URL, notamment le site de l’association et ses pages activité, agenda, adhésion et contact ; ajouter si utile des informations manuelles. Cliquer sur « Collecter ces sources ». La fiche de l’annuaire est lue via son API officielle même si sa page Web nécessite JavaScript. Pour une association découverte dans l’annuaire, au moins une autre page publique est nécessaire avant l’analyse IA.
 4. Consulter les textes et erreurs ; lorsque le fournisseur IA est configuré, cliquer sur « Préparer la fiche avec l’IA ».
 5. Vérifier les sources, corriger le brouillon et l’enregistrer. La précédente version reste consultable et téléchargeable.
 6. Prévisualiser le dossier. Le télécharger ou, après configuration SMTP, l’envoyer à l’adresse personnelle affichée.

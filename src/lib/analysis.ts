@@ -6,6 +6,7 @@ import type { CollectedPage } from './collector';
 import { atomic, row, run, type StoredRun } from './store';
 import { aiConfig } from './services';
 import { HttpError } from './http';
+import { associationSourceRequired } from './analysis-readiness';
 
 const normalized = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fr');
 export function validateAnalysis(raw: unknown, pages: CollectedPage[]): Dossier {
@@ -38,6 +39,7 @@ export async function analyze(db: Client, runInfo: StoredRun, pages: CollectedPa
   const config = aiConfig();
   if (!config.ready) throw new HttpError(409, "L'analyse IA attend un fournisseur autorisé et sa configuration locale.");
   if (!pages.some(page => page.source.accessStatus === 'available')) throw new HttpError(422, 'Aucune source lisible. Ajoutez une autre page ou des informations manuelles.');
+  if (associationSourceRequired(runInfo.input, pages)) throw new HttpError(422, "Ajoutez au moins une page publique de l’association (son site, une page d’activité ou d’adhésion) puis recollectez les sources. L’annuaire seul ne permet pas de proposer une intervention sérieuse. Aucun appel IA n’a été consommé.");
   await atomic(db, async tx => {
     const since = new Date().toISOString().slice(0, 10);
     const count = (await row<{ n: number }>(tx, 'SELECT COUNT(*) AS n FROM ai_calls WHERE created_at >= ?', [since]))!.n;
@@ -70,5 +72,13 @@ Chaque fait doit inclure evidence avec un extrait exact très court (160 caract�
   try { result = JSON.parse(json.choices?.[0]?.message?.content || ''); }
   catch { throw new HttpError(422, "L'IA n'a pas renvoyé un JSON valide. Aucune fiche n'a été enregistrée."); }
   try { return validateAnalysis(result, pages); }
-  catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(422, 'Analyse rejetée : structure ou références invalides. Relancez après vérification des sources.'); }
+  catch (error) {
+    if (error instanceof HttpError) throw error;
+    if (error instanceof z.ZodError) {
+      const issue = error.issues[0];
+      const field = issue.path.join('.') || 'dossier';
+      throw new HttpError(422, `Analyse rejetée : champ ${field} invalide (${issue.message}). Le dossier précédent reste disponible.`);
+    }
+    throw new HttpError(422, 'Analyse rejetée : structure ou références invalides. Le dossier précédent reste disponible.');
+  }
 }

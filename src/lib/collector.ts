@@ -6,6 +6,7 @@ import ipaddr from "ipaddr.js";
 import { load } from "cheerio";
 import { z } from "zod";
 import { sourceRecordSchema } from "./schemas";
+import { directorySirenFromUrl, officialRecord } from "./discovery";
 
 export const collectedPageSchema = z.object({ source: sourceRecordSchema, text: z.string().max(18000), error: z.string().optional() });
 export type CollectedPage = z.infer<typeof collectedPageSchema>;
@@ -71,12 +72,17 @@ async function download(raw: string, originalHost: string, redirects = 0): Promi
 export async function collectPage(raw: string): Promise<CollectedPage> {
   const source: CollectedPage['source'] = { id: randomUUID(), url: raw, label: new URL(raw).hostname, origin: 'public_page', consultedAt: new Date().toISOString(), accessStatus: 'unavailable' };
   try {
+    const directorySiren = directorySirenFromUrl(raw);
+    if (directorySiren) {
+      const record = await officialRecord(directorySiren);
+      return { source: { ...source, url: record.url, label: record.label, accessStatus: 'available' }, text: record.text };
+    }
     const response = await download(raw, new URL(raw).hostname.replace(/^www\./, ''));
     const parsed = extractPage(response.html);
     if (parsed.text.length < 80) throw new Error("Contenu insuffisant ou page nécessitant JavaScript.");
     return { source: { ...source, url: response.url, label: parsed.title || source.label, accessStatus: 'available' }, text: parsed.text };
   } catch (error) {
-    const known = error instanceof Error && /^(URL publique|Les adresses|Redirection|Le site|Cette page|Page trop|Trop de|Contenu insuffisant|Résolution)/.test(error.message);
+    const known = error instanceof Error && /^(URL publique|Les adresses|Redirection|Le site|Cette page|Page trop|Trop de|Contenu insuffisant|Résolution|L’annuaire public|SIREN introuvable)/.test(error.message);
     return { source, text: '', error: known ? (error as Error).message : "Impossible de consulter cette page. Vérifiez l'URL ou essayez une autre source publique." };
   }
 }

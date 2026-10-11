@@ -9,6 +9,7 @@ import type { ServiceStatus } from '@/lib/services';
 import type { Delivery } from '@/lib/delivery';
 import type { Dossier } from '@/lib/schemas';
 import { DossierView } from './DossierView';
+import { associationSourceRequired } from '@/lib/analysis-readiness';
 
 const deliveryLabels: Record<string, string> = { sending: 'En cours', accepted: 'Accepté par le serveur — réception à confirmer', received: 'Réception confirmée par vous', failed: 'Échec confirmé', uncertain: 'Résultat incertain — boîte à vérifier' };
 type Preview = { id: string; revision: number; recipient: string; subject: string; body: string };
@@ -33,6 +34,8 @@ export function TestWorkspace({ run, dossier, pages, work, services, history, se
   useEffect(() => { setSubject(dossier?.content.draft?.subject || ''); setBody(dossier?.content.draft?.body || ''); setPreview(null); setReplace(false); }, [dossier?.revision, dossier?.content.draft?.subject, dossier?.content.draft?.body]);
   const dirty = subject !== (dossier?.content.draft?.subject || '') || body !== (dossier?.content.draft?.body || '');
   const active = !!busy || !!(work && ['collecting','analyzing'].includes(work.state));
+  const needsSource = associationSourceRequired(run.input, pages);
+  const siteSearch = `https://www.google.com/search?q=${encodeURIComponent(`${run.label} association Lyon site officiel`)}`;
   async function action(actionName: string, data: Record<string, unknown> = {}) {
     setBusy(actionName); setError(''); setMessage('');
     try {
@@ -57,8 +60,9 @@ export function TestWorkspace({ run, dossier, pages, work, services, history, se
         <div className="form-footer"><button className="secondary-button" disabled={active}>{busy === 'collect' ? 'Consultation des pages…' : 'Collecter ces sources'}</button><button type="button" className="secondary-button" disabled={active || dirty} onClick={() => void action('rerun')}>Nouveau test avec le ciblage actuel</button></div>
       </form>
       {pages.length > 0 && <div className="collected-pages">{pages.map(page => <details key={page.source.id}><summary>{page.source.label} · {page.source.accessStatus === 'available' ? 'Lisible' : 'Inaccessible'}</summary><p>{page.error || `${page.text.length} caractères collectés le ${new Date(page.source.consultedAt!).toLocaleString('fr-FR')}`}</p>{page.source.url && <a href={page.source.url} target="_blank" rel="noreferrer">Ouvrir la source</a>}{page.text && <pre className="source-text">{page.text}</pre>}</details>)}</div>}
+      {needsSource && <p className="warning">L’annuaire confirme seulement l’identité de l’association. Ajoutez ci-dessus au moins une page publique décrivant ses activités, son agenda ou ses adhésions, puis cliquez sur « Collecter ces sources ». <a href={siteSearch} target="_blank" rel="noreferrer">Chercher son site ↗</a></p>}
       {dossier && <label className="check-line"><input type="checkbox" checked={replace} onChange={e => setReplace(e.target.checked)} /> Créer une nouvelle version de la fiche ; conserver la précédente.</label>}
-      <div className="form-footer"><button className="primary-button" disabled={active || dirty || !services.aiReady || !pages.some(p => p.source.accessStatus === 'available') || (!!dossier && !replace)} onClick={() => void action('analyze', { revision: dossier?.revision || 0, replace })}>{busy === 'analyze' ? 'Préparation de la fiche…' : 'Préparer la fiche avec l’IA'}</button><span className="field-help">{services.aiReady ? `${services.aiModel} · ${services.dailyLimit} appels maximum par jour UTC` : 'Analyse IA à connecter dans la configuration du serveur.'}</span></div>
+      <div className="form-footer"><button className="primary-button" disabled={active || dirty || !services.aiReady || needsSource || !pages.some(p => p.source.accessStatus === 'available') || (!!dossier && !replace)} onClick={() => void action('analyze', { revision: dossier?.revision || 0, replace })}>{busy === 'analyze' ? 'Préparation de la fiche…' : 'Préparer la fiche avec l’IA'}</button><span className="field-help">{services.aiReady ? `${services.aiModel} · ${services.dailyLimit} appels maximum par jour UTC` : 'Analyse IA à connecter dans la configuration du serveur.'}</span></div>
       {work?.error && <p className="warning">Dernier traitement : {work.error}</p>}
       {(active || message) && <p className="form-message" role="status">{busy ? 'Traitement en cours. Vous pouvez consulter le reste de la fiche.' : message}</p>}
       {error && <p role="alert" className="warning">{error}</p>}

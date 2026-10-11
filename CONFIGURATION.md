@@ -38,7 +38,7 @@ En local, SQLite est dans `.data/prospection.db` (ou le chemin `DATABASE_PATH`).
 
 Une collecte interrompue peut être relancée après cinq minutes. Une tentative e-mail interrompue devient « résultat incertain » après deux minutes : vérifier la boîte avant reprise. Les erreurs affichées ne contiennent pas les réponses brutes des fournisseurs ni leurs secrets.
 
-Les pages exigeant JavaScript, une authentification ou dépassant 1 Mo ne sont pas collectées. Six URL explicites maximum par collecte. La découverte d’associations lyonnaises interroge l’API publique Recherche d’entreprises à la demande ; elle ne recherche pas automatiquement le site de chaque association et ne déduit aucun besoin de l’annuaire seul. Les redirections hors du site initial demandent de fournir explicitement la nouvelle URL. Les adresses privées sont refusées et la résolution DNS est épinglée pour la connexion.
+Les pages exigeant JavaScript, une authentification ou dépassant 1 Mo ne sont pas collectées. Exception : une fiche précise de l’Annuaire des entreprises est lue via l’API officielle, sans exécuter sa page JavaScript. Six URL explicites maximum par collecte. La découverte d’associations lyonnaises interroge l’API publique Recherche d’entreprises à la demande ; elle ne recherche pas automatiquement le site de chaque association et ne déduit aucun besoin de l’annuaire seul. L’analyse d’une association issue de l’annuaire exige au moins une autre page publique lisible avant de consommer un appel IA. Les redirections hors du site initial demandent de fournir explicitement la nouvelle URL. Les adresses privées sont refusées et la résolution DNS est épinglée pour la connexion.
 
 ## Références techniques des adaptateurs
 
