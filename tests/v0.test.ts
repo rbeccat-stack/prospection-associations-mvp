@@ -98,7 +98,7 @@ test('OpenRouter : schéma structuré demandé et réponse tronquée signalée c
     assert.ok(request.response_format.json_schema.schema.properties.claims);
     assert.equal(request.provider.require_parameters, true);
     assert.equal(request.max_tokens, 6000);
-    assert.deepEqual(request.reasoning, { effort: 'low' });
+    assert.deepEqual(request.reasoning, { enabled: false });
     return Response.json({ choices: [{ finish_reason: 'length', message: { content: '{"schemaVersion":1' } }] });
   };
   try { await assert.rejects(analyze(db, run, pages), /limite de longueur/); }

@@ -57,7 +57,7 @@ Chaque fait doit inclure evidence avec un extrait exact très court (160 caract�
       body: JSON.stringify({ model: config.model, max_tokens: config.tokens,
         response_format: openRouter ? { type: 'json_schema', json_schema: { name: 'association_dossier', strict: false, schema } } : { type: 'json_object' },
         ...(openRouter ? { provider: { require_parameters: true } } : {}),
-        ...(openRouter && config.model === 'deepseek/deepseek-v4.1-flash' ? { reasoning: { effort: 'low' } } : {}),
+        ...(openRouter && config.model === 'deepseek/deepseek-v4.1-flash' ? { reasoning: { enabled: false } } : {}),
         messages: [{ role: 'system', content: instructions }, { role: 'user', content: JSON.stringify({ association: runInfo.input, criteria: runInfo.profileSnapshot, pages }) }] }),
     });
   } catch { throw new HttpError(502, "Le fournisseur IA n'a pas répondu. Aucun dossier n'a été remplacé ; vous pouvez réessayer."); }
