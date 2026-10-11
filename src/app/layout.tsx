@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./dossier.css";
+import "./discovery.css";
+import "./opportunities.css";
 
 export const metadata: Metadata = {
   title: "Dossier du jour — Prospection d’associations",

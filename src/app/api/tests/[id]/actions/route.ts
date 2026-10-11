@@ -10,7 +10,7 @@ import { confirmReceipt, previewDelivery, sendDelivery } from '@/lib/delivery';
 
 export const runtime = 'nodejs';
 const actionSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('collect'), urls: z.array(z.url().refine(url => /^https?:\/\//.test(url))).max(3), manualText: z.string().trim().max(18000).default('') }).strict(),
+  z.object({ action: z.literal('collect'), urls: z.array(z.url().refine(url => /^https?:\/\//.test(url))).max(6), manualText: z.string().trim().max(18000).default('') }).strict(),
   z.object({ action: z.literal('analyze'), revision: z.number().int().nonnegative(), replace: z.boolean().default(false) }).strict(),
   z.object({ action: z.literal('draft'), revision: z.number().int().positive(), draft: outreachDraftSchema }).strict(),
   z.object({ action: z.literal('preview') }).strict(),
@@ -30,8 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (input.action === 'collect') {
       if (!input.urls.length && input.manualText.length < 30) throw new HttpError(400, 'Indiquez une URL ou au moins 30 caractères d’informations à analyser.');
       await startWork(db, id, 'collecting'); working = true;
-      const pages: CollectedPage[] = [];
-      for (const url of [...new Set(input.urls)]) pages.push(await collectPage(url));
+      const pages: CollectedPage[] = await Promise.all([...new Set(input.urls)].map(url => collectPage(url)));
       if (input.manualText) pages.push({ source: { id: randomUUID(), label: 'Informations fournies manuellement pour ce test', origin: 'user_input', consultedAt: new Date().toISOString(), accessStatus: 'available' }, text: input.manualText });
       await saveCollection(db, id, pages);
       await finishWork(db, id, pages.some(page => page.source.accessStatus === 'available') ? 'collected' : 'failed', pages.every(page => page.source.accessStatus !== 'available') ? 'Aucune page lisible. Ajoutez une autre URL ou des informations manuelles.' : null);

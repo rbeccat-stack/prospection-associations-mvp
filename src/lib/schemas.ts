@@ -20,6 +20,8 @@ export const targetingProfileSchema = z.object({
 
 export type TargetingProfile = z.infer<typeof targetingProfileSchema>;
 
+export const DEFAULT_ASSOCIATION_OFFER = "J’aide les associations à simplifier leurs tâches répétitives avec des automatisations adaptées (avec ou sans IA), à créer ou améliorer leur site web, à organiser le suivi des contacts, adhérents et bénévoles dans un CRM, à mettre en place une newsletter et des formulaires d’inscription, d’adhésion ou de don. Je privilégie un premier livrable utile, réaliste et respectueux des données personnelles.";
+
 const commonInput = {
   name: z.string().trim().min(1, "Indiquez le nom de l’association").max(160),
   url: optionalUrl,
@@ -109,6 +111,15 @@ export const dossierSchema = z.object({
     absorption: qualificationAxisSchema,
   }).strict().optional(),
   matches: z.array(z.object({ criterion: z.string().trim().min(1), status: z.enum(["match", "no_match", "unknown"]), explanation: z.string().trim().max(1200), claimIds: z.array(z.string().uuid()) }).strict()).max(50),
+  opportunities: z.array(z.object({
+    title: z.string().trim().min(1).max(160),
+    observation: z.string().trim().min(1).max(700),
+    service: z.string().trim().min(1).max(700),
+    firstDeliverable: z.string().trim().min(1).max(700),
+    factClaimIds: z.array(z.string().uuid()).min(1).max(5),
+    toVerify: z.string().trim().min(1).max(500),
+    priority: z.enum(["recommended", "alternative"]),
+  }).strict()).max(3).optional(),
   approach: z.object({
     angle: z.string().trim().min(1).max(1200),
     rationale: z.string().trim().max(2000),
@@ -158,6 +169,14 @@ export const dossierSchema = z.object({
       if (!claims.has(claimId)) ctx.addIssue({ code: "custom", path: ["matches", index, "claimIds"], message: "Affirmation inconnue" });
     }
   }
+  for (const [index, opportunity] of (dossier.opportunities || []).entries()) {
+    for (const claimId of opportunity.factClaimIds) {
+      if (!dossier.claims.some(claim => claim.id === claimId && claim.kind === "fact")) ctx.addIssue({ code: "custom", path: ["opportunities", index, "factClaimIds"], message: "Une intervention proposée exige un fait sourcé" });
+    }
+  }
+  if ((dossier.opportunities || []).filter(opportunity => opportunity.priority === "recommended").length > 1) {
+    ctx.addIssue({ code: "custom", path: ["opportunities"], message: "Une seule intervention peut être recommandée" });
+  }
 });
 
 export type Dossier = z.infer<typeof dossierSchema>;
@@ -172,7 +191,7 @@ export const defaultProfile: TargetingProfile = {
   needsSignals: [],
   exclusions: [],
   tone: "",
-  offer: "",
+  offer: DEFAULT_ASSOCIATION_OFFER,
 };
 
 export function listFromText(value: string): string[] {

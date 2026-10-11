@@ -1,0 +1,5 @@
+.opportunity-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px;margin-top:18px}
+.opportunity-list>div{border:1px solid var(--line);background:#f8fbfb;border-radius:10px;padding:17px}
+.opportunity-list strong{display:block;color:var(--blue-dark);margin-bottom:12px}
+.opportunity-list p{font-size:.85rem;margin:0 0 9px}
+.opportunity-list p:last-child{margin-bottom:0}

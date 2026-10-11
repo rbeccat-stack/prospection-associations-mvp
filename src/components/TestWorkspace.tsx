@@ -50,7 +50,7 @@ export function TestWorkspace({ run, dossier, pages, work, services, history, se
   return <>
     <section className="panel workflow-panel" aria-labelledby="prepare-heading">
       <div className="panel-heading"><h2 id="prepare-heading">Préparer ce dossier</h2><span className="version">Ciblage v{run.profileVersion}</span></div>
-      <p className="panel-intro">Consultez jusqu’à trois pages publiques de votre choix, puis préparez la fiche à partir de leur contenu. Les pages qui demandent une connexion ou JavaScript peuvent rester illisibles.</p>
+      <p className="panel-intro">Consultez jusqu’à six pages publiques : accueil, activité, agenda, adhésion, contact ou autres pages utiles. Ajoutez le site de l’association si la fiche vient de l’annuaire. Les pages qui demandent une connexion ou JavaScript peuvent rester illisibles.</p>
       <form className="form-stack" onSubmit={event => { event.preventDefault(); void action('collect', { urls: urls.split(/\n/).map(v => v.trim()).filter(Boolean), manualText }); }}>
         <label>Pages à consulter — une URL par ligne<textarea rows={3} value={urls} onChange={e => setUrls(e.target.value)} placeholder="https://association.fr/&#10;https://association.fr/contact/" /></label>
         <details><summary>Ajouter des informations manuelles</summary><label>Informations et provenance<textarea rows={5} maxLength={18000} value={manualText} onChange={e => setManualText(e.target.value)} /></label></details>

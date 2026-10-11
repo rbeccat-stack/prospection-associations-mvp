@@ -1,0 +1,12 @@
+.discovery-panel{margin-top:28px}
+.discovery-panel .panel-intro{max-width:85ch}
+.discovery-meta{margin:24px 0 12px;color:var(--muted);font-size:.85rem}
+.candidate-list{border-top:1px solid var(--line)}
+.candidate{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:17px 0;border-bottom:1px solid var(--line)}
+.candidate h3{margin:0 0 5px;font-size:1rem}
+.candidate p{margin:0 0 3px;color:var(--muted);font-size:.86rem}
+.candidate small{color:var(--muted)}
+.candidate-actions{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.candidate-actions a{font-size:.84rem;white-space:nowrap}
+.discovery-pagination{display:flex;gap:10px;margin-top:18px}
+@media(max-width:700px){.candidate{align-items:flex-start;flex-direction:column}.candidate-actions{width:100%;justify-content:space-between;flex-wrap:wrap}}
