@@ -66,6 +66,41 @@ test('qualification à deux axes : anciens dossiers lisibles et références fac
   db.close();
 });
 
+test('analyse : métadonnées absentes ou erronées remplies par le serveur, contenu toujours vérifié', async () => {
+  const { db, run, content } = await fixture();
+  try {
+    const pages = content.sources.map(source => ({ source, text: content.claims.filter(c => c.sourceIds.includes(source.id)).map(c => c.text).join('\n') + '\n' + content.contacts.filter(c => c.sourceIds.includes(source.id)).map(c => c.value).join('\n') }));
+    for (const claim of content.claims) if (claim.kind === 'fact') claim.evidence = [{ sourceId: claim.sourceIds[0], quote: claim.text }];
+    const { schemaVersion, preparation, sources, ...analysisContent } = content;
+    const raw = {
+      ...analysisContent,
+      claims: content.claims.map(({ verification, ...claim }) => claim),
+      draft: content.draft && { channel: content.draft.channel, angle: content.draft.angle, subject: content.draft.subject, body: content.draft.body },
+    };
+    const result = validateAnalysis(raw, pages);
+    assert.equal(result.schemaVersion, 1);
+    assert.equal(result.preparation, 'ai_assisted');
+    assert.equal(result.draft!.state, 'draft');
+    assert.deepEqual(result.sources, pages.map(p => p.source));
+    assert.ok(result.claims.filter(c => c.kind === 'fact').every(c => c.verification === 'sourced'));
+    for (const version of ['1', 2, null, undefined]) {
+      const legacy = { ...raw, schemaVersion: version, preparation: 'invented', sources: 'invented', draft: { ...raw.draft, state: 'sent' } };
+      const corrected = validateAnalysis(legacy, pages);
+      assert.equal(corrected.schemaVersion, 1);
+      assert.equal(corrected.draft!.state, 'draft');
+      assert.deepEqual(corrected.sources, result.sources);
+      assert.equal(legacy.schemaVersion, version);
+    }
+    assert.throws(() => dossierSchema.parse({ ...result, schemaVersion: '1' }), /schemaVersion/);
+    const invalidContent = structuredClone(raw); invalidContent.claims[0].evidence[0].quote = 'Une citation entièrement inventée et absente.';
+    assert.throws(() => validateAnalysis(invalidContent, pages), /passage cité/);
+    const foreignSource = structuredClone(raw); foreignSource.claims[0].sourceIds = [randomUUID()];
+    assert.throws(() => validateAnalysis(foreignSource, pages), /Source inconnue/);
+    await replaceDossier(db, run.id, result, 1);
+    assert.deepEqual((await getDossier(db, run.id))!.content, result);
+  } finally { db.close(); }
+});
+
 test('analyse : identifiants IA mal formés remplacés sans perdre les preuves ou les liens', async () => {
   const { db, run, content } = await fixture();
   try {
@@ -238,7 +273,13 @@ test('OpenRouter : schéma structuré demandé et réponse tronquée signalée c
     assert.equal(output.qualification.properties.digitalDebt.properties.claimIds.items.format, undefined);
     assert.equal(output.matches.items.properties.claimIds.items.format, undefined);
     assert.equal(output.opportunities.items.properties.factClaimIds.items.format, undefined);
-    assert.equal(output.sources.items.properties.id.format, 'uuid');
+    assert.equal(output.schemaVersion, undefined);
+    assert.equal(output.preparation, undefined);
+    assert.equal(output.sources, undefined);
+    assert.equal(output.claims.items.properties.verification, undefined);
+    assert.equal(output.draft.properties.state, undefined);
+    assert.equal(output.claims.items.properties.sourceIds.items.format, 'uuid');
+    assert.equal(output.claims.items.properties.evidence.items.properties.sourceId.format, 'uuid');
     assert.equal(request.provider.require_parameters, true);
     assert.equal(request.max_tokens, 6000);
     assert.deepEqual(request.reasoning, { enabled: false });

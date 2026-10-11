@@ -1,15 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { dossierSchema } from './schemas';
+import { dossierStructureSchema, outreachDraftSchema } from './schemas';
+import type { CollectedPage } from './collector';
 import { HttpError } from './http';
 
 function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-// The model uses short labels. UUIDs for persisted claims belong to the application.
+// Ask for analysis content only. Storage versions, source records and draft state
+// are owned by the server, not by the model.
 export function analysisOutputSchema() {
-  const schema = z.toJSONSchema(dossierSchema);
+  const schema = z.toJSONSchema(dossierStructureSchema.omit({ schemaVersion: true, preparation: true, sources: true }).extend({
+    draft: outreachDraftSchema.omit({ state: true }).optional(),
+  }));
   const labelSchema = () => ({ type: 'string', minLength: 1, maxLength: 100 });
   function visit(node: unknown) {
     if (!object(node)) return;
@@ -20,6 +24,8 @@ export function analysisOutputSchema() {
         if (key === 'claimIds' || key === 'factClaimIds') value.items = labelSchema();
         if (key === 'claims' && object(value.items) && object(value.items.properties)) {
           value.items.properties.id = labelSchema();
+          delete value.items.properties.verification;
+          if (Array.isArray(value.items.required)) value.items.required = value.items.required.filter(key => key !== 'verification');
         }
       }
     }
@@ -30,6 +36,22 @@ export function analysisOutputSchema() {
   }
   visit(schema);
   return schema;
+}
+
+export function prepareAnalysisPayload(raw: unknown, pages: CollectedPage[]): unknown {
+  if (!object(raw)) return raw;
+  const content = structuredClone(raw);
+  content.schemaVersion = 1;
+  content.preparation = 'ai_assisted';
+  content.sources = pages.map(page => structuredClone(page.source));
+  if (object(content.draft)) content.draft.state = 'draft';
+  if (Array.isArray(content.claims)) {
+    for (const claim of content.claims) {
+      if (object(claim)) claim.verification = claim.kind === 'fact' ? 'sourced' : claim.kind === 'unknown' ? 'incomplete' : 'to_verify';
+    }
+  }
+  // Cross-references and actual evidence are still validated by validateAnalysis.
+  return assignAnalysisClaimIds(content);
 }
 
 export function assignAnalysisClaimIds(raw: unknown): unknown {
