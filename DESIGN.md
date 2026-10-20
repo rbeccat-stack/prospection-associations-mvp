@@ -2,33 +2,36 @@
 name: "Swipe & Prospect — prototype mobile provisoire"
 description: "Relevé du prototype local prototypes/mobile ; ne vaut pas validation du produit connecté."
 colors:
-  canvas: "#f4f8f8"
-  paper: "#fff"
-  ink: "#17323d"
-  muted: "#506770"
-  blue: "#175a75"
-  green: "#117968"
-  green-hover: "#0b6255"
-  pale: "#e8f5f0"
-  line: "#d9e5e7"
-  focus: "#bd7b08"
-  control-border: "#9bb7c0"
-  control-hover: "#edf4f5"
-  nav-active: "#edf6f2"
-  stack: "#eaf1f2"
-  card-border: "#b4ccd3"
-  card-location: "#dbeaf0"
-  card-green: "#216c5e"
-  card-slate: "#405a75"
+  canvas: "#14181d"
+  paper: "#1b2229"
+  ink: "#f2f0eb"
+  muted: "#b2bcc6"
+  blue: "#bad5ee"
+  green: "#c7dbd1"
+  green-hover: "#deeee6"
+  action-ink: "#182722"
+  pale: "#253b36"
+  line: "#36414b"
+  focus: "#efc87c"
+  control-border: "#74818e"
+  control-hover: "#2b3640"
+  nav-active: "#283a40"
+  stack: "#252e37"
+  card-border: "#526674"
+  card-blue: "#25445b"
+  card-ink: "#f7f3ec"
+  card-location: "#d0dfe8"
+  card-green: "#284f48"
+  card-slate: "#394253"
 typography:
   body:
     fontFamily: '"Segoe UI Variable", "Aptos", "Segoe UI", sans-serif'
     fontSize: "16px"
     lineHeight: 1.5
   title:
-    fontFamily: '"Segoe UI Variable", "Aptos", "Segoe UI", sans-serif'
-    fontSize: "25px"
-    fontWeight: 650
+    fontFamily: 'Georgia, "Times New Roman", serif'
+    fontSize: "28px"
+    fontWeight: 400
     lineHeight: 1.15
     letterSpacing: "-0.025em"
   card-name:
@@ -37,8 +40,9 @@ typography:
     lineHeight: 1.15
     letterSpacing: "-0.025em"
   card-headline:
-    fontSize: "29px"
-    fontWeight: 600
+    fontFamily: 'Georgia, "Times New Roman", serif'
+    fontSize: "31px"
+    fontWeight: 400
     lineHeight: 1.16
     letterSpacing: "-0.025em"
   button:
@@ -65,7 +69,7 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.green}"
-    textColor: "{colors.paper}"
+    textColor: "{colors.action-ink}"
     typography: "{typography.button}"
     rounded: "{rounded.button}"
     padding: "12px 18px"
@@ -84,7 +88,7 @@ components:
     typography: "{typography.text-action}"
     padding: "9px 0"
   field:
-    backgroundColor: "{colors.paper}"
+    backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
     rounded: "{rounded.field}"
     padding: "12px"
@@ -112,36 +116,36 @@ components:
 
 Ce document décrit uniquement la maquette locale `prototypes/mobile/index.html`, dans son état du 20 octobre 2026. Ses tokens font référence pour reproduire cette maquette ; ils ne constituent ni une nouvelle identité de marque ni une approbation de l’UX de production. Sources : `prototypes/mobile/styles.css`, `index.html`, `app.js` et le contrat `docs/refonte-mobile/MAQUETTE.md`.
 
-La famille bleu/vert et les surfaces claires prolongent `src/app/globals.css`. Le parcours par cartes reprend la référence d’usage La Matinale confirmée par Rémi. Aucune métaphore créative supplémentaire n’est établie. Les gestes, la hiérarchie et les mots restent à valider avec lui. La PWA installable, le moteur de préparation, la synchronisation et le déploiement sont des travaux futurs.
+Rémi a demandé le 20 octobre une ambiance plus foncée et moderne inspirée de La Matinale. Le prototype adopte des surfaces charbon, des cartes bleu profond, vert sombre et ardoise, et des accroches à empattements. Ce n’est ni une reproduction de la marque du Monde ni une modification de l’ancien atelier. Le prototype est publié sur le domaine ; la PWA installable, le moteur de préparation et la synchronisation restent à développer.
 
 **Key Characteristics:**
 
 - Une proposition visible à la fois, avec décisions hors de la carte.
 - Lecture alignée à gauche, corps de texte mobile et détails progressifs.
-- Bleu pour l’en-tête de carte et les liens ; vert pour garder et signaler la sélection.
+- Titres éditoriaux sur des surfaces sombres ; liens bleu clair et action Garder en vert très pâle.
 - Mentions d’exemple et réserves présentes dans le parcours.
 
 ## Colors
 
 ### Primary
 
-Le bleu porte l’en-tête de la première carte et les accès aux dossiers. Le vert porte l’action Garder, la navigation active et les retours d’action. Le vert de survol est un état de bouton, pas une nouvelle catégorie de contenu.
+Le bleu clair porte les liens, distinct du bleu profond de la première carte. Garder utilise un vert très pâle avec une encre sombre ; le même accent signale la sélection et les retours d’action. Son survol éclaircit le bouton.
 
 ### Secondary
 
-Les variantes vert de carte et ardoise distinguent les deux autres exemples. Leur attribution actuelle ne définit aucun statut, score ou secteur. Le vert pâle encadre l’explication « Pourquoi cette association ? ».
+Les variantes vert sombre et ardoise distinguent les deux autres exemples. Leur attribution ne définit aucun statut, score ou secteur. Un fond vert sombre encadre l’explication « Pourquoi cette association ? ».
 
 ### Neutral
 
-Le canevas clair entoure le téléphone de présentation ; le papier blanc porte l’application et les cartes. L’encre structure le texte principal, le gris bleuté les informations secondaires. Les traits séparent sections et navigation. Le ton de pile forme le décalage sous la carte et le bandeau de maquette. Le contraste du focus utilise l’ocre dédié.
+Le canevas charbon entoure le téléphone de présentation ; la surface ardoise porte l’application et le corps des cartes. L’encre claire structure le texte principal, le gris bleuté les informations secondaires. Les traits séparent sections et navigation. Le ton de pile forme le décalage sous la carte et le bandeau de maquette. Le focus utilise un ambre clair dédié.
 
 Les valeurs `muted` et `focus` sont celles du prototype ; elles diffèrent des tokens de même rôle dans l’application existante. Aucun nuancier intermédiaire n’a été mesuré ni généré pour ce relevé.
 
 ## Typography
 
-Une seule pile système est employée : Segoe UI Variable, Aptos, Segoe UI, puis sans-serif. Aucun fichier de police n’est livré ; le rendu dépend des polices disponibles sur l’appareil.
+Le texte et les contrôles utilisent Segoe UI Variable, Aptos, Segoe UI, puis sans-serif. Les titres de page, de dossier, de présentation et les accroches de carte utilisent Georgia, Times New Roman, puis serif. Aucun fichier de police n’est livré ; le rendu dépend des polices disponibles sur l’appareil.
 
-Le corps reste à 16 px. Les titres de page sont compacts ; le nom de l’association puis la raison de la proposition forment deux niveaux distincts. Sous 370 px, la raison passe de 29 à 25 px. Le titre de dossier atteint 32 px. Les liens d’action et les précisions utilisent 14 px ; les avertissements courts et libellés de navigation, 12 px. Les compteurs emploient des chiffres tabulaires.
+Le corps reste à 16 px. Les titres de page sont à 28 px ; le nom de l’association puis la raison de la proposition forment deux niveaux distincts. Sous 370 px, la raison passe de 31 à 27 px. Le titre de dossier atteint 34 px. Les liens d’action et les précisions utilisent 14 px ; les avertissements courts et libellés de navigation, 12 px. Les compteurs emploient des chiffres tabulaires.
 
 ## Layout
 
@@ -161,19 +165,19 @@ Les angles sont modérément arrondis : navigation et sélecteurs, champs, bouto
 
 ### Buttons
 
-Garder utilise un fond vert et une icône signet ; Passer utilise le papier blanc, un contour bleuté et une croix. Les deux déclenchent les mêmes décisions que le glissement. Le survol modifie le fond. Les liens-boutons bleus sont soulignés ; l’annulation est plus discrète, centrée et atténuée quand indisponible. Le focus visible commun est un contour de 3 px décalé de 4 px. Aucun état pressé spécifique n’est défini.
+Garder utilise un fond vert très pâle, du texte sombre et une icône signet ; Passer utilise la surface sombre, un contour gris bleuté et une croix. Les deux déclenchent les mêmes décisions que le glissement. Le survol modifie le fond. Les liens-boutons bleu clair sont soulignés ; l’annulation est plus discrète, centrée et atténuée quand indisponible. Le focus visible commun est un contour de 3 px décalé de 4 px. Aucun état pressé spécifique n’est défini.
 
 ### Cards / Containers
 
-La carte associe un en-tête coloré (identité, implantation, raison) et un corps blanc (observation, piste, réserve, accès au dossier). Les choix restent à l’extérieur. Les éléments de sélection sont une liste séparée par des traits, sans reproduire le panneau coloré. La fin des propositions et la sélection vide disposent d’un titre, d’une explication et d’une action.
+La carte associe un en-tête coloré sombre (identité, implantation, raison) et un corps charbon (observation, piste, réserve, accès au dossier). Les choix restent à l’extérieur. Les éléments de sélection sont une liste séparée par des traits, sans reproduire le panneau coloré. La fin des propositions et la sélection vide disposent d’un titre, d’une explication et d’une action.
 
 ### Inputs / Fields
 
-Les champs ont un contour bleuté et un libellé visible au-dessus. Le brouillon est une zone redimensionnable verticalement, d’au moins 200 px de haut. Le suivi utilise un sélecteur natif, limité à 60 % de la ligne du libellé. La validation du formulaire d’exemple repose sur les contrôles natifs `required` et URL ; aucun traitement visuel d’erreur personnalisé n’est implémenté.
+Les champs ont un fond charbon, un contour gris bleuté et un libellé visible au-dessus. Le brouillon est une zone redimensionnable verticalement, d’au moins 200 px de haut. Le suivi utilise un sélecteur natif sombre, limité à 60 % de la ligne du libellé. La validation du formulaire d’exemple repose sur les contrôles natifs `required` et URL ; aucun traitement visuel d’erreur personnalisé n’est implémenté.
 
 ### Navigation
 
-Trois boutons avec icône et texte : Propositions, Ma sélection et Plus. La page courante est identifiée par `aria-current`, un fond clair et du texte vert. Dans le dossier, l’onglet d’origine reste courant ; le retour rejoint cet écran. Le lien d’évitement et le déplacement du focus vers le contenu sont implémentés. Aucun menu latéral mobile n’est présent.
+Trois boutons avec icône et texte : Propositions, Ma sélection et Plus. La page courante est identifiée par `aria-current`, un fond vert ardoise et du texte vert clair. Dans le dossier, l’onglet d’origine reste courant ; le retour rejoint cet écran. Le lien d’évitement et le déplacement du focus vers le contenu sont implémentés. Aucun menu latéral mobile n’est présent.
 
 ### Dossier and feedback
 

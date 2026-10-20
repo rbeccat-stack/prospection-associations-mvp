@@ -49,6 +49,8 @@ Cadence de préparation, budget des recherches et analyses, volume de propositio
 
 Nom de travail : Swipe & Prospect. Référence d’usage confirmée : La Matinale du Monde. Langue française, explications courtes, vocabulaire accessible. Les actions de configuration technique quittent le parcours quotidien.
 
+Direction visuelle demandée le 20 octobre 2026 : ambiance plus sombre et moderne, inspirée de la lecture éditoriale de La Matinale, sans reprendre sa marque. La première application concerne le prototype mobile.
+
 ## Evidence on Hand
 
 - Dossier de référence fourni : `C:/Users/purple brain/Downloads/Dossier KoToPo — Mille et une langues.md`, daté du 11 octobre 2026.

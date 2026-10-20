@@ -6,7 +6,7 @@ Mode : Operate. Cible : `prototypes/mobile/index.html`. Périmètre : prototype 
 
 THESIS : une association à la fois, avec un constat et une première aide possibles. La sélection se construit en parcourant des dossiers préparés, comme dans le parcours de La Matinale confirmé par Rémi.
 
-OWN-WORLD : reprise de la famille existante : fond clair #f4f8f8, blanc #ffffff, encre #17323d, bleu #175a75, vert d’action #117968, traits #d9e5e7. Typographie de travail Segoe UI Variable / Aptos. Alignement à gauche ; carte de contenu unique, navigation et choix hors de son contenu.
+OWN-WORLD : retouche demandée par Rémi le 20 octobre : fond charbon #14181d, surface #1b2229, encre claire #f2f0eb, carte bleu profond #25445b, vert d’action pâle #c7dbd1, traits #36414b. Titres et accroches Georgia ; texte et contrôles Segoe UI Variable / Aptos. Inspiration éditoriale de La Matinale sans copie de sa marque. Alignement à gauche ; carte de contenu unique, navigation et choix hors de son contenu.
 
 STORY : comprendre l’association, lire le signal, découvrir une piste ; garder ou passer, puis approfondir depuis sa sélection. Les trois exemples et leurs limites restent identifiés sur tous les écrans.
 
@@ -42,3 +42,5 @@ Une revue indépendante du code et des quatre captures (propositions mobile et o
 Observation mineure à reprendre lors du branchement réel : si le stockage du navigateur est bloqué, une confirmation d’action peut remplacer le message d’indisponibilité. Les données de la visite restent utilisables, mais la persistance doit être annoncée plus durablement dans ce cas. Le pilote connecté devra couvrir ce scénario avec la synchronisation serveur.
 
 Les captures de référence sont conservées dans `.impeccable/review/`. Les composants et couleurs effectivement utilisés sont documentés séparément dans `DESIGN.md` et `.impeccable/design.json` ; cela ne vaut pas validation définitive de l’identité ou des écrans de production.
+
+La retouche sombre conserve les données, les mots et les interactions. Elle est vérifiée sur téléphone, largeur intermédiaire et ordinateur, avec contrôle des contrastes, des champs et des états de navigation. La revue indépendante ci-dessus concernait le parcours initial ; elle n’est pas présentée comme une nouvelle revue indépendante de cette retouche.
