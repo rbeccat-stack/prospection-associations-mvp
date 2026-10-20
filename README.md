@@ -11,6 +11,12 @@ npm run dev
 
 Ouvrir http://127.0.0.1:3000. En local, SQLite conserve les données dans `.data/prospection.db`. Sur Vercel, configurer Turso et le mot de passe privé selon [CONFIGURATION.md](CONFIGURATION.md). Les données locales ne sont pas transférées automatiquement vers Turso.
 
+## Aperçu de la refonte mobile
+
+La maquette est accessible à `/apercu` sur le site déployé, y compris depuis un téléphone et sur les domaines déjà associés au projet Vercel. Elle utilise le même accès privé que l’application actuelle. Les cartes sont des exemples identifiés comme tels ; les choix et brouillons de cet aperçu restent dans le navigateur et ne modifient pas Turso. La recherche automatique et l’installation PWA restent à développer.
+
+Voir le [cadrage de refonte](docs/refonte-mobile/CADRAGE.md) et les [limites de la maquette](prototypes/mobile/README.md). Un push sur la branche `main` déclenche le déploiement Vercel existant.
+
 ## Services et limites actuelles
 
 La collecte, l’édition, les versions, la prévisualisation et le téléchargement sont utilisables. Les adaptateurs IA et SMTP sont implémentés et testés avec des réponses simulées. Aucun fournisseur ni identifiant n’a été configuré : l’analyse réelle et la réception d’un premier e-mail doivent encore être vérifiées après configuration. Voir [CONFIGURATION.md](CONFIGURATION.md).

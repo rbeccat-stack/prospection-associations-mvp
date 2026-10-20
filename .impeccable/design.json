@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T13:57:30Z",
+  "title": "Design System: Swipe & Prospect — prototype mobile provisoire",
+  "extensions": {
+    "scope": "Relevé descriptif de prototypes/mobile au 20 octobre 2026. Provisoire ; aucune approbation de marque ou de production. Primitives dans DESIGN.md. Les extraits sont visuels et sans logique applicative.",
+    "sources": ["prototypes/mobile/styles.css", "prototypes/mobile/index.html", "prototypes/mobile/app.js", "docs/refonte-mobile/MAQUETTE.md", "src/app/globals.css"],
+    "colorMeta": {
+      "canvas": {"role": "neutral", "displayName": "Canevas clair"},
+      "paper": {"role": "neutral", "displayName": "Papier blanc"},
+      "ink": {"role": "neutral", "displayName": "Encre"},
+      "muted": {"role": "neutral", "displayName": "Texte secondaire du prototype"},
+      "blue": {"role": "primary", "displayName": "Bleu de carte et de lien"},
+      "green": {"role": "primary", "displayName": "Vert d’action"},
+      "green-hover": {"role": "primary", "displayName": "Vert de survol"},
+      "pale": {"role": "secondary", "displayName": "Fond explicatif vert pâle"},
+      "line": {"role": "neutral", "displayName": "Séparateur"},
+      "focus": {"role": "focus", "displayName": "Ocre de focus"},
+      "control-border": {"role": "neutral", "displayName": "Contour de contrôle"},
+      "control-hover": {"role": "neutral", "displayName": "Survol secondaire"},
+      "nav-active": {"role": "neutral", "displayName": "Fond de navigation active"},
+      "stack": {"role": "neutral", "displayName": "Fond de pile et bandeau"},
+      "card-border": {"role": "neutral", "displayName": "Contour de carte"},
+      "card-location": {"role": "neutral", "displayName": "Implantation sur couleur"},
+      "card-green": {"role": "secondary", "displayName": "Variante de carte verte"},
+      "card-slate": {"role": "secondary", "displayName": "Variante de carte ardoise"}
+    },
+    "tonalRampPolicy": "Aucune rampe fournie : seules les couleurs effectivement présentes sont documentées ; aucune interpolation synthétique n’est présentée comme un token observé.",
+    "typographyMeta": {
+      "body": {"displayName": "Lecture", "purpose": "Texte courant mobile ; pile système, sans téléchargement de police."},
+      "title": {"displayName": "Titre de page", "purpose": "Titres Propositions, Ma sélection et Plus."},
+      "card-name": {"displayName": "Nom de l’association", "purpose": "Identité dans la carte."},
+      "card-headline": {"displayName": "Raison proposée", "purpose": "Accroche de carte ; 25 px sous 370 px."},
+      "button": {"displayName": "Choix", "purpose": "Garder, Passer et boutons ordinaires."},
+      "text-action": {"displayName": "Accès textuel", "purpose": "Accès souligné au dossier."}
+    },
+    "shadows": [],
+    "elevation": "Aucune ombre. Fond décalé derrière la carte, contours fins et surfaces colorées.",
+    "focus": {"value": "3px solid var(--focus, #bd7b08)", "offset": "4px", "purpose": "Focus visible commun aux contrôles et liens."},
+    "motion": [
+      {"name": "card-return", "value": "transform .2s cubic-bezier(.16,1,.3,1), opacity .2s ease", "purpose": "Retour de la carte après déplacement ; transition coupée pendant le glissement."},
+      {"name": "pointer-follow", "value": "translateX(dx * .7 px) rotate(dx * .025 deg)", "purpose": "Transformation calculée directement par le pointeur. Choix au-delà de 85 px si le mouvement horizontal domine le vertical d’un facteur 1,3."},
+      {"name": "reduced-motion", "value": "transition:none!important; animation:none!important; scroll-behavior:auto!important", "purpose": "Règle CSS sous prefers-reduced-motion:reduce ; elle ne supprime pas la transformation directe du pointeur."}
+    ],
+    "breakpoints": [
+      {"name": "review-compact", "value": "960px", "purpose": "max-width ; resserre le support de présentation."},
+      {"name": "mobile-full-width", "value": "760px", "purpose": "max-width ; masque les notes de revue et déploie l’application."},
+      {"name": "narrow-mobile", "value": "370px", "purpose": "max-width ; réduit les marges et l’accroche de carte."}
+    ],
+    "knownLimitations": ["Le succès d’une action peut remplacer le message de stockage indisponible.", "Prototype local seulement : ni PWA, ni moteur connecté, ni synchronisation, ni envoi d’e-mail."]
+  },
+  "components": [
+    {
+      "name": "Garder",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Choix principal de la carte ; extrait visuel sans persistance.",
+      "html": "<button type=\"button\" class=\"ds-primary\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M6 3h12v18l-6-4-6 4z\"/></svg>Garder</button>",
+      "css": ".ds-primary{font:650 16px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;min-height:50px;padding:12px 18px;display:inline-flex;justify-content:center;align-items:center;gap:10px;border:1px solid var(--green,#117968);border-radius:10px;background:var(--green,#117968);color:var(--paper,#fff);cursor:pointer}.ds-primary svg{width:18px;height:18px;flex-shrink:0}.ds-primary:hover{background:#0b6255}.ds-primary:focus-visible{outline:3px solid var(--focus,#bd7b08);outline-offset:4px}"
+    },
+    {
+      "name": "Passer",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Choix secondaire de la carte, même hauteur que Garder.",
+      "html": "<button type=\"button\" class=\"ds-secondary\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"m7 7 10 10M17 7 7 17\"/></svg>Passer</button>",
+      "css": ".ds-secondary{font:650 16px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;min-height:50px;padding:12px 18px;display:inline-flex;justify-content:center;align-items:center;gap:10px;border:1px solid #9bb7c0;border-radius:10px;background:var(--paper,#fff);color:var(--ink,#17323d);cursor:pointer}.ds-secondary svg{width:18px;height:18px;flex-shrink:0}.ds-secondary:hover{background:#edf4f5}.ds-secondary:focus-visible{outline:3px solid var(--focus,#bd7b08);outline-offset:4px}"
+    },
+    {
+      "name": "Lire le dossier",
+      "kind": "button",
+      "refersTo": "text-action",
+      "description": "Accès textuel souligné dans le pied de carte.",
+      "html": "<button type=\"button\" class=\"ds-text-action\">Lire le dossier</button>",
+      "css": ".ds-text-action{font:650 14px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;border:0;background:none;padding:9px 0;min-height:44px;color:var(--blue,#175a75);text-decoration:underline;text-underline-offset:5px;cursor:pointer}.ds-text-action:focus-visible{outline:3px solid var(--focus,#bd7b08);outline-offset:4px}"
+    },
+    {
+      "name": "Champ de référence",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Champ URL du formulaire de démonstration, avec libellé visible.",
+      "html": "<label class=\"ds-field\">Site ou page de référence<input class=\"ds-input\" type=\"url\" placeholder=\"https://association.fr\" required></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:8px;font:600 16px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;margin-top:16px;color:var(--ink,#17323d)}.ds-input{font:400 16px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;width:100%;border:1px solid #9bb7c0;border-radius:9px;padding:12px;color:var(--ink,#17323d);background:var(--paper,#fff);caret-color:var(--green,#117968)}.ds-input:focus-visible{outline:3px solid var(--focus,#bd7b08);outline-offset:4px}"
+    },
+    {
+      "name": "Navigation inférieure",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Trois destinations avec état courant. La position collante appartient à la mise en page de l’application.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navigation principale\"><button type=\"button\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><rect x=\"5\" y=\"5\" width=\"14\" height=\"16\" rx=\"2\"/><path d=\"M8 2h8M8 10h8M8 14h5\"/></svg><span>Propositions</span></button><button type=\"button\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M6 3h12v18l-6-4-6 4z\"/></svg><span>Ma sélection</span></button><button type=\"button\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><circle cx=\"5\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"19\" cy=\"12\" r=\"1\"/></svg><span>Plus</span></button></nav>",
+      "css": ".ds-nav{display:grid;grid-template-columns:1fr 1fr 80px;background:var(--paper,#fff);border-top:1px solid var(--line,#d9e5e7);padding:8px 12px max(10px,env(safe-area-inset-bottom))}.ds-nav button{font:12px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;min-height:56px;background:none;border:0;display:flex;gap:5px;align-items:center;justify-content:center;flex-direction:column;color:var(--muted,#506770);border-radius:8px;cursor:pointer}.ds-nav svg{width:21px;height:21px}.ds-nav button[aria-current=page]{color:var(--green,#117968);background:#edf6f2;font-weight:700}.ds-nav button:focus-visible{outline:3px solid var(--focus,#bd7b08);outline-offset:4px}"
+    },
+    {
+      "name": "Carte de proposition",
+      "kind": "card",
+      "refersTo": "prospect-card",
+      "description": "Structure de la carte KoToPo : contenu d’exemple, réserve et accès au dossier. Les décisions sont à l’extérieur.",
+      "html": "<div class=\"ds-deck\"><article class=\"ds-card\"><div class=\"ds-card-lead\"><h2>KoToPo</h2><p class=\"ds-location\">Lyon 1er · Culture et langues</p><h3>Un programme à publier une seule fois.</h3></div><div class=\"ds-card-body\"><p>Le dossier fourni décrit une programmation régulière publiée dans un PDF mensuel.</p><h4>Ce que tu pourrais proposer</h4><p>Un calendrier partagé qui facilite la publication des rendez-vous.</p><div class=\"ds-card-foot\"><small>Piste exemple, à confirmer</small><button type=\"button\">Lire le dossier</button></div></div></article></div>",
+      "css": ".ds-deck{position:relative;font:16px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;color:var(--ink,#17323d)}.ds-deck:before{content:'';position:absolute;inset:10px 9px -8px;background:#eaf1f2;border:1px solid var(--line,#d9e5e7);border-radius:16px}.ds-card{position:relative;overflow:clip;border:1px solid #b4ccd3;background:var(--paper,#fff);border-radius:16px}.ds-card-lead{padding:24px;background:var(--blue,#175a75);color:var(--paper,#fff)}.ds-card h2,.ds-card h3,.ds-card h4,.ds-card p{margin:0}.ds-card h2{font-size:24px;line-height:1.15;font-weight:650;letter-spacing:-.025em}.ds-card .ds-location{color:#dbeaf0;font-size:14px;margin-top:7px}.ds-card h3{font-size:29px;line-height:1.16;letter-spacing:-.025em;font-weight:600;margin-top:26px;text-wrap:balance}.ds-card-body{padding:22px 24px 20px}.ds-card-body>p{margin-bottom:18px}.ds-card h4{font-size:14px;line-height:1.15;font-weight:700;color:var(--green,#117968);margin-bottom:7px}.ds-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line,#d9e5e7);padding-top:13px}.ds-card-foot small{color:var(--muted,#506770);font-size:12px}.ds-card-foot button{font:650 14px/1.5 'Segoe UI Variable',Aptos,'Segoe UI',sans-serif;border:0;background:none;padding:9px 0;min-height:44px;color:var(--blue,#175a75);text-decoration:underline;text-underline-offset:5px;cursor:pointer}.ds-card-foot button:focus-visible{outline:3px solid var(--focus,#bd7b08);outline-offset:4px}@media(max-width:370px){.ds-card-lead,.ds-card-body{padding:20px}.ds-card h3{font-size:25px}}"
+    }
+  ],
+  "narrative": {
+    "overview": "Ce document décrit uniquement la maquette locale `prototypes/mobile/index.html`, dans son état du 20 octobre 2026. Ses tokens font référence pour reproduire cette maquette ; ils ne constituent ni une nouvelle identité de marque ni une approbation de l’UX de production. Sources : `prototypes/mobile/styles.css`, `index.html`, `app.js` et le contrat `docs/refonte-mobile/MAQUETTE.md`.\n\nLa famille bleu/vert et les surfaces claires prolongent `src/app/globals.css`. Le parcours par cartes reprend la référence d’usage La Matinale confirmée par Rémi. Aucune métaphore créative supplémentaire n’est établie. Les gestes, la hiérarchie et les mots restent à valider avec lui. La PWA installable, le moteur de préparation, la synchronisation et le déploiement sont des travaux futurs.",
+    "keyCharacteristics": [
+      "Une proposition visible à la fois, avec décisions hors de la carte.",
+      "Lecture alignée à gauche, corps de texte mobile et détails progressifs.",
+      "Bleu pour l’en-tête de carte et les liens ; vert pour garder et signaler la sélection.",
+      "Mentions d’exemple et réserves présentes dans le parcours."
+    ],
+    "rules": [],
+    "dos": [
+      "Do conserver les mentions de maquette, les dates des exemples et les réserves dans les écrans concernés.",
+      "Do garder les deux choix accessibles par bouton en plus du glissement.",
+      "Do utiliser les tokens du prototype pour prolonger cette maquette, puis revalider le système avant son intégration au produit."
+    ],
+    "donts": [
+      "Don't présenter ce relevé comme une identité de marque ou une UX de production approuvée.",
+      "Don't donner aux variantes colorées des cartes une signification de statut absente du prototype.",
+      "Don't annoncer installation, mode hors connexion, synchronisation ou envoi de message comme déjà disponibles."
+    ]
+  }
+}

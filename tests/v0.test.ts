@@ -20,6 +20,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { TestWorkspace } from '../src/components/TestWorkspace';
 import { GET as downloadDiagnostic } from '../src/app/api/tests/[id]/diagnostics/[attemptId]/route';
+import { GET as mobilePreview } from '../src/app/apercu/[[...asset]]/route';
 
 async function fixture() {
   const db = createClient({ url: 'file::memory:' }); await initializeDb(db); await saveProfile(db, defaultProfile);
@@ -460,5 +461,36 @@ test('accès Vercel : mot de passe requis et identifiants vérifiés', () => {
   } finally {
     if (oldVercel === undefined) delete process.env.VERCEL; else process.env.VERCEL = oldVercel;
     if (oldPassword === undefined) delete process.env.APP_PASSWORD; else process.env.APP_PASSWORD = oldPassword;
+  }
+});
+
+test('aperçu mobile : fichiers servis sous leur préfixe, outils et traversée refusés', async () => {
+  const request = new Request('https://swipe.example/apercu');
+  const get = (asset?: string[]) => mobilePreview(request, { params:Promise.resolve({ asset }) });
+  const page = await get();
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-type')!, /text\/html/);
+  assert.equal(page.headers.get('cache-control'), 'private, no-store');
+  const html = await page.text();
+  assert.match(html, /href="\/apercu\/styles.css"/);
+  assert.match(html, /src="\/apercu\/app.js"/);
+  assert.match(html, /dossiers exemples à revérifier/);
+  assert.equal(await (await get(['index.html'])).text(), html);
+  for (const [asset, type] of [['styles.css', 'text/css'], ['app.js', 'text/javascript']]) {
+    const response = await get([asset]);
+    assert.equal(response.status, 200);
+    assert.ok(response.headers.get('content-type')!.startsWith(type));
+  }
+  for (const asset of [['serve.mjs'], ['README.md'], ['.env.local'], ['..', '..', '.env.local'], ['../index.html'], ['unknown.js']]) assert.equal((await get(asset)).status, 404);
+  const priorVercel = process.env.VERCEL, priorPassword = process.env.APP_PASSWORD;
+  process.env.VERCEL = '1'; process.env.APP_PASSWORD = 'preview-test-password';
+  try {
+    for (const path of ['/apercu', '/apercu/index.html', '/apercu/styles.css', '/apercu/app.js']) {
+      assert.equal(proxy(new NextRequest(`https://swipe.example${path}`)).status, 401);
+      assert.equal(proxy(new NextRequest(`https://swipe.example${path}`, { headers:{ authorization:`Basic ${Buffer.from('swipe:preview-test-password').toString('base64')}` } })).status, 200);
+    }
+  } finally {
+    if (priorVercel === undefined) delete process.env.VERCEL; else process.env.VERCEL = priorVercel;
+    if (priorPassword === undefined) delete process.env.APP_PASSWORD; else process.env.APP_PASSWORD = priorPassword;
   }
 });

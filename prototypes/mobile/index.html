@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>Swipe & Prospect — maquette mobile</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#screen">Aller au contenu</a>
+  <div class="prototype-layout">
+    <aside class="review-notes" aria-label="À propos de cette maquette">
+      <a class="wordmark" href="#propositions">Swipe <span>&</span> Prospect</a>
+      <h1>Des associations.<br>Une bonne raison<br>de les rencontrer.</h1>
+      <p>Ouvre, découvre, choisis. La recherche se fait en amont ; ta journée commence par les propositions.</p>
+      <div class="review-steps">
+        <p><strong>Une carte pour décider</strong><br>Un constat, une piste, puis garder ou passer.</p>
+        <p><strong>Un dossier pour comprendre</strong><br>Les faits, les réserves et un premier livrable.</p>
+        <p><strong>Ta sélection pour agir</strong><br>Les associations retenues et la prochaine étape.</p>
+      </div>
+      <p class="review-foot">Maquette de parcours · 20 octobre 2026<br>Les dossiers exemples ne sont pas une recherche récente.</p>
+    </aside>
+    <div class="app">
+      <header class="app-header">
+        <a class="wordmark" href="#propositions" aria-label="Swipe et Prospect, propositions">Swipe <span>&</span> Prospect</a>
+        <span class="location">Lyon</span>
+      </header>
+      <p class="prototype-notice">Maquette interactive · dossiers exemples à revérifier</p>
+      <main id="screen" tabindex="-1"></main>
+      <p id="notice" class="notice" role="status" aria-live="polite"></p>
+      <nav class="bottom-nav" aria-label="Navigation principale">
+        <button type="button" data-nav="propositions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M8 2h8M8 10h8M8 14h5"/></svg><span>Propositions</span></button>
+        <button type="button" data-nav="selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>Ma sélection <span id="saved-count" class="nav-count"></span></span></button>
+        <button type="button" data-nav="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>Plus</span></button>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>
