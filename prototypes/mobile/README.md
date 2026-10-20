@@ -1,10 +1,10 @@
 # Maquette mobile de Swipe & Prospect
 
-Prototype de parcours autonome, préparé le 20 octobre 2026. Il ne remplace pas le site en production et n’utilise ni la base de données, ni l’IA, ni l’e-mail.
+Prototype de parcours autonome, préparé le 20 octobre 2026, désormais ouvert depuis l’accueil du site. Ses exemples n’utilisent ni la base de données, ni l’IA, ni l’e-mail. Les dossiers de la première version restent dans l’espace `/atelier`.
 
 ## Consultation
 
-Sur le site déployé : ouvrir `/apercu`, avec le même accès privé que l’application. Cette adresse peut être ouverte depuis un téléphone et sur tout domaine déjà relié au projet Vercel. Les trois fichiers sont servis par une route dédiée ; les outils et documents de ce répertoire ne sont pas exposés.
+Sur le site déployé : l’adresse principale ouvre désormais `/apercu`, avec le même accès privé que l’application. Cette adresse peut être ouverte depuis un téléphone et sur tout domaine déjà relié au projet Vercel. Les trois fichiers sont servis par une route dédiée ; les outils et documents de ce répertoire ne sont pas exposés. L’ancien tableau de bord reste accessible sur `/atelier`, depuis le lien dans « Plus ».
 
 Pour un aperçu local indépendant de Next.js, depuis la racine du projet : `node prototypes/mobile/serve.mjs`, puis ouvrir `http://127.0.0.1:4173/` sur cet ordinateur. Le serveur écoute uniquement en local et ne sert que les trois fichiers de la maquette. Ce lien local n’est pas accessible depuis un autre téléphone.
 

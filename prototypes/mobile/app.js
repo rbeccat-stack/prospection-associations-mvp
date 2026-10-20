@@ -163,6 +163,17 @@ function showDossier(id) {
   announce('');
 }
 function renderPlus() {
+  if (location.pathname.startsWith('/apercu')) {
+    // Expose the preserved workspace only on the hosted application. The
+    // standalone prototype server does not implement /atelier.
+    queueMicrotask(() => {
+      if (view !== 'plus') return;
+      const existing = document.createElement('section');
+      existing.className = 'utility';
+      existing.innerHTML = '<h2>Mes dossiers existants</h2><p>Retrouve les fiches, les brouillons et le tableau de bord de la première version.</p><a class="button" href="/atelier">Ouvrir mes dossiers existants</a>';
+      screen.append(existing);
+    });
+  }
   screen.innerHTML = `<div class="page-heading"><h1>À ta main</h1></div><div class="utility"><h2>Le ciblage est déjà intégré.</h2><p>Associations lyonnaises, tous secteurs. Les pistes concernent l’automatisation, le site web, le CRM, la newsletter et l’organisation des données.</p><h2>Ajouter une association reste possible.</h2><p>Dans la version connectée, cet accès facultatif permettra de proposer une association ou d’ajouter une source. Il ne sera jamais nécessaire pour consulter les propositions.</p><details><summary>Voir le formulaire prévu</summary><form id="manual-example"><label class="field">Nom de l’association<input name="name" maxlength="160" required autocomplete="off"></label><label class="field">Site ou page de référence<input name="url" type="url" placeholder="https://association.fr" required></label><button class="button" type="submit">Tester l’ajout dans la maquette</button><p class="source-note">Formulaire de démonstration uniquement. Aucune recherche n’est lancée et rien n’est envoyé au serveur.</p></form></details><h2>À propos des exemples</h2><p>Cette maquette utilise trois dossiers existants. Les pistes d’Anciela et d’Artis sont exploratoires : elles nécessiteraient des preuves supplémentaires pour intégrer une vraie sélection de besoins identifiés.</p><p>Les choix et modifications restent dans ce navigateur. La maquette n’est pas encore une application installable et ne synchronise pas les données entre tes appareils.</p><button type="button" class="button" data-action="reset">Recommencer avec les trois exemples</button></div>`;
 }
 function attachSwipe() {

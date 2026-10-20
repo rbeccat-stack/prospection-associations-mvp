@@ -23,7 +23,7 @@ export default async function TestPage({ params }: { params: Promise<{ id: strin
   const criteria = run.profileSnapshot;
 
   return <main className="detail-shell">
-    <div className="detail-top"><Link href="/" className="text-link">← Retour au tableau de bord</Link><span className="quiet">Test privé · {new Date(run.createdAt).toLocaleString("fr-FR")}</span></div>
+    <div className="detail-top"><Link href="/atelier" className="text-link">← Retour au tableau de bord</Link><span className="quiet">Test privé · {new Date(run.createdAt).toLocaleString("fr-FR")}</span></div>
     <header className="detail-head"><span className="status-tag">{dossier ? "Dossier sourcé" : "En attente d’analyse"}</span><h1>{run.label}</h1><p>{dossier ? "Fiche préparée à partir des sources indiquées. Les faits, hypothèses et réserves restent séparés." : "Cette entrée est enregistrée. Aucune analyse de site ni fiche sourcée n’a encore été produite."}</p></header>
     <TestWorkspace run={run} dossier={dossier} pages={await collection(db, id)} work={await workflow(db, id)} services={serviceStatus()} history={await revisions(db, id)} sent={await deliveries(db, id)} />
     <h2 className="original-data-heading">Données du test</h2>

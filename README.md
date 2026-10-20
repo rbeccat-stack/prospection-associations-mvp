@@ -13,7 +13,7 @@ Ouvrir http://127.0.0.1:3000. En local, SQLite conserve les données dans `.data
 
 ## Aperçu de la refonte mobile
 
-La maquette est accessible à `/apercu` sur le site déployé, y compris depuis un téléphone et sur les domaines déjà associés au projet Vercel. Elle utilise le même accès privé que l’application actuelle. Les cartes sont des exemples identifiés comme tels ; les choix et brouillons de cet aperçu restent dans le navigateur et ne modifient pas Turso. La recherche automatique et l’installation PWA restent à développer.
+L’adresse principale du site ouvre désormais la nouvelle interface mobile via `/apercu`, y compris depuis un téléphone et sur les domaines déjà associés au projet Vercel. L’ancien tableau de bord et les dossiers restent accessibles dans `/atelier`, également lié depuis « Plus ». L’accès privé reste le même. Les cartes sont des exemples identifiés comme tels ; les choix et brouillons de cet aperçu restent dans le navigateur et ne modifient pas Turso. La recherche automatique et l’installation PWA restent à développer.
 
 Voir le [cadrage de refonte](docs/refonte-mobile/CADRAGE.md) et les [limites de la maquette](prototypes/mobile/README.md). Un push sur la branche `main` déclenche le déploiement Vercel existant.
 
