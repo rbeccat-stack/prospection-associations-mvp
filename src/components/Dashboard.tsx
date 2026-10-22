@@ -6,7 +6,9 @@ import { defaultProfile, listFromText, type TargetingProfile } from "@/lib/schem
 import type { DuplicateMatch, StoredProfile, StoredRun } from "@/lib/store";
 
 import type { ServiceStatus } from "@/lib/services";
+import type { EditionView } from "@/lib/engine";
 import { DiscoverPanel } from "./DiscoverPanel";
+import { EditionsPanel } from "./EditionsPanel";
 
 type InputMode = "url" | "manual" | "csv";
 type Preview = { rows: { label: string; type: InputMode; url: string | null }[]; duplicates: DuplicateMatch[] };
@@ -32,7 +34,7 @@ async function postJson<T>(path: string, payload: unknown): Promise<T> {
   return json as T;
 }
 
-export function Dashboard({ initialProfile, initialRuns, services }: { initialProfile: StoredProfile | null; initialRuns: StoredRun[]; services: ServiceStatus }) {
+export function Dashboard({ initialProfile, initialRuns, initialEditions, services }: { initialProfile: StoredProfile | null; initialRuns: StoredRun[]; initialEditions: EditionView[]; services: ServiceStatus }) {
   const [profile, setProfile] = useState(initialProfile);
   const [criteria, setCriteria] = useState<TargetingProfile>(initialProfile?.criteria || defaultProfile);
   const [listDraft, setListDraft] = useState(() => ({
@@ -103,10 +105,10 @@ export function Dashboard({ initialProfile, initialRuns, services }: { initialPr
   }
 
   return <div className="app-shell">
-    <aside className="side-rail"><div className="brand"><span className="brand-mark">d.</span><div><strong>Dossier du jour</strong><small>Associations</small></div></div><nav aria-label="Sections"><a href="#decouvrir">Découvrir</a><a href="#ciblage">Ciblage</a><a href="#nouveau-test">Ajout manuel</a><a href="#historique">Historique</a></nav><div className="rail-note"><span className="rail-dot" /> Espace privé<p>Collecte et envoi sur votre action</p></div></aside>
+    <aside className="side-rail"><div className="brand"><span className="brand-mark">d.</span><div><strong>Dossier du jour</strong><small>Associations</small></div></div><nav aria-label="Sections"><a href="#editions">Éditions</a><a href="#decouvrir">Découvrir</a><a href="#ciblage">Ciblage</a><a href="#nouveau-test">Ajout manuel</a><a href="#historique">Historique</a></nav><div className="rail-note"><span className="rail-dot" /> Espace privé<p>Collecte et envoi sur votre action</p></div></aside>
     <main className="workbench">
       <header className="masthead"><div><p className="kicker">Espace de travail personnel</p><h1>Préparer de meilleurs dossiers d’association.</h1><p className="lead">Découvrez des associations lyonnaises ou ajoutez-en une, consultez ses sources et préparez une fiche. Relisez le brouillon puis recevez le dossier sur votre adresse personnelle.</p></div><div className="masthead-side"><span className="stage-pill">V0</span><strong>{runs.length}</strong><span>test{runs.length > 1 ? "s" : ""} enregistré{runs.length > 1 ? "s" : ""}</span></div></header>
-      <section className="service-status" aria-label="État des services"><p><strong>Analyse IA :</strong> {services.aiReady ? `${services.aiModel} · prête` : "à connecter"}</p><p><strong>E-mail de test :</strong> {services.mailReady ? `prêt pour ${services.recipient}` : "à connecter"}</p><p className="field-help">La collecte, les corrections et les prévisualisations sont disponibles. Les connexions se configurent côté serveur selon CONFIGURATION.md.</p></section><DiscoverPanel profileReady={!!profile} /><div className="workspace-grid">
+      <section className="service-status" aria-label="État des services"><p><strong>Analyse IA :</strong> {services.aiReady ? `${services.aiModel} · prête` : "à connecter"}</p><p><strong>E-mail de test :</strong> {services.mailReady ? `prêt pour ${services.recipient}` : "à connecter"}</p><p className="field-help">La collecte, les corrections et les prévisualisations sont disponibles. Les connexions se configurent côté serveur selon CONFIGURATION.md.</p></section><EditionsPanel initialEditions={initialEditions} aiReady={services.aiReady} /><DiscoverPanel profileReady={!!profile} /><div className="workspace-grid">
         <section className="panel profile-panel" id="ciblage"><div className="panel-heading"><div><p className="section-index">Étape 1</p><h2>Votre ciblage</h2></div><span className="version">{profile ? `Version ${profile.version}` : "À définir"}</span></div><p className="panel-intro">Les champs laissés vides n’ajoutent aucun filtre. Chaque test conserve une copie de la version utilisée.</p>
           <form onSubmit={saveCriteria} className="form-stack">
             <label>Nom du ciblage<input required maxLength={80} value={criteria.name} onChange={(e) => updateCriteria("name", e.target.value)} /></label>

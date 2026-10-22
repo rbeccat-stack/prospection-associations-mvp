@@ -1,0 +1,29 @@
+.editions-panel{margin-top:28px}
+.editions-panel .panel-intro{max-width:85ch}
+.editions-panel .form-footer{flex-wrap:wrap;gap:12px}
+.text-button{background:none;border:0;padding:9px 4px;color:var(--blue);font-weight:650;text-decoration:underline;cursor:pointer}
+.text-button:disabled{color:var(--muted);cursor:not-allowed}
+.edition-current{margin-top:22px;border-top:1px solid var(--line);padding-top:20px}
+.edition-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+.edition-head h3{font-size:1.3rem;margin:2px 0 4px}
+.edition-head .quiet{margin:0;font-size:.84rem}
+.edition-metrics{display:grid;grid-template-columns:repeat(4,auto);gap:6px 22px;margin:0}
+.edition-metrics dt{color:var(--muted);font-size:.76rem}
+.edition-metrics dd{margin:0;font-weight:650;font-variant-numeric:tabular-nums}
+.edition-candidates{list-style:none;margin:18px 0 0;padding:0;border-top:1px solid var(--line)}
+.edition-candidate{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:13px 0;border-bottom:1px solid var(--line)}
+.edition-candidate>div:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.edition-candidate a{font-size:.84rem;overflow-wrap:anywhere}
+.edition-candidate small{color:var(--muted);font-size:.8rem}
+.edition-candidate-side{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.edition-badge{font-size:.76rem;font-weight:700;padding:3px 8px;border-radius:6px;background:#edf2f3;color:var(--muted);white-space:nowrap}
+.is-ready .edition-badge{background:var(--teal-pale);color:var(--teal)}
+.is-research .edition-badge,.is-skipped .edition-badge,.is-failed .edition-badge{background:var(--amber-pale);color:var(--amber)}
+.is-collected .edition-badge{background:#e3eef4;color:var(--blue-dark)}
+.is-unused{opacity:.7}
+.edition-history{margin-top:18px}
+.edition-history summary{cursor:pointer;font-weight:650}
+.edition-history ul{list-style:none;padding:0;margin:10px 0 0}
+.edition-history li{display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.edition-history li span{color:var(--muted)}
+@media(max-width:700px){.edition-metrics{grid-template-columns:repeat(2,auto)}.edition-candidate{align-items:flex-start;flex-direction:column}.edition-candidate-side{width:100%;justify-content:space-between}}

@@ -48,6 +48,10 @@ Une collecte interrompue peut être relancée après cinq minutes. Une tentative
 
 Les pages exigeant JavaScript, une authentification ou dépassant 1 Mo ne sont pas collectées. Exception : une fiche précise de l’Annuaire des entreprises est lue via l’API officielle, sans exécuter sa page JavaScript. Six URL explicites maximum par collecte. La découverte d’associations lyonnaises interroge l’API publique Recherche d’entreprises à la demande ; elle ne recherche pas automatiquement le site de chaque association et ne déduit aucun besoin de l’annuaire seul. L’analyse d’une association issue de l’annuaire exige au moins une autre page publique lisible avant de consommer un appel IA. Les redirections hors du site initial demandent de fournir explicitement la nouvelle URL. Les adresses privées sont refusées et la résolution DNS est épinglée pour la connexion.
 
+## Moteur d’éditions
+
+Aucune variable supplémentaire. Une édition interroge l’API publique du Journal officiel des associations (DILA), lit les sites déclarés avec le même collecteur et consomme au plus cinq appels IA, dans la limite de `AI_DAILY_REQUEST_LIMIT`. Avec OpenRouter, l’application demande le relevé d’usage (`usage.include`) pour enregistrer les jetons et le coût de chaque appel dans son diagnostic privé. Voir [docs/refonte-mobile/MOTEUR.md](docs/refonte-mobile/MOTEUR.md).
+
 ## Références techniques des adaptateurs
 
 - [Nodemailer : SMTP et TLS](https://nodemailer.com/smtp)

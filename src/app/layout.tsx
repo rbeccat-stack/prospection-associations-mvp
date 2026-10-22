@@ -3,6 +3,7 @@ import "./globals.css";
 import "./dossier.css";
 import "./discovery.css";
 import "./opportunities.css";
+import "./editions.css";
 
 export const metadata: Metadata = {
   title: "Dossier du jour — Prospection d’associations",

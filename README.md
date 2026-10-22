@@ -17,6 +17,10 @@ L’adresse principale du site ouvre désormais la nouvelle interface mobile via
 
 Voir le [cadrage de refonte](docs/refonte-mobile/CADRAGE.md) et les [limites de la maquette](prototypes/mobile/README.md). Un push sur la branche `main` déclenche le déploiement Vercel existant.
 
+## Moteur d’éditions (preuve)
+
+Dans `/atelier`, « Lancer une édition » tire au sort une catégorie du Journal officiel des associations, parmi les associations lyonnaises qui y déclarent un site. Le moteur lit ce site et ses pages clés, puis prépare jusqu’à cinq dossiers avec l’IA ; un site illisible est écarté sans appel payant. Le panneau affiche la catégorie, l’état de chaque association, les dossiers prêts et le coût relevé. Gardez la page ouverte pendant la préparation. Détails et limites : [docs/refonte-mobile/MOTEUR.md](docs/refonte-mobile/MOTEUR.md).
+
 ## Services et limites actuelles
 
 La collecte, l’édition, les versions, la prévisualisation et le téléchargement sont utilisables. Les adaptateurs IA et SMTP sont implémentés et testés avec des réponses simulées. Aucun fournisseur ni identifiant n’a été configuré : l’analyse réelle et la réception d’un premier e-mail doivent encore être vérifiées après configuration. Voir [CONFIGURATION.md](CONFIGURATION.md).

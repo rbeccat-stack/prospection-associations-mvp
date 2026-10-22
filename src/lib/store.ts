@@ -51,6 +51,9 @@ const schema = [
   `CREATE TABLE IF NOT EXISTS deliveries (id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES test_runs(id), revision INTEGER NOT NULL, recipient TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, state TEXT NOT NULL, provider_id TEXT, error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(run_id, revision))`,
   `CREATE TABLE IF NOT EXISTS delivery_previews (id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES test_runs(id), revision INTEGER NOT NULL, recipient TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS delivery_attempts (id TEXT PRIMARY KEY, delivery_id TEXT NOT NULL REFERENCES deliveries(id), state TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS editions (id TEXT PRIMARY KEY, domain_code TEXT NOT NULL, domain_label TEXT NOT NULL, domain_family TEXT NOT NULL, profile_version INTEGER NOT NULL REFERENCES targeting_profiles(version), max_analyses INTEGER NOT NULL, state TEXT NOT NULL, error TEXT, lock_until TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS edition_candidates (id TEXT PRIMARY KEY, edition_id TEXT NOT NULL REFERENCES editions(id), position INTEGER NOT NULL, rna TEXT NOT NULL, name TEXT NOT NULL, website TEXT NOT NULL, record TEXT NOT NULL, state TEXT NOT NULL, reason TEXT, run_id TEXT REFERENCES test_runs(id), updated_at TEXT NOT NULL, UNIQUE(edition_id, rna))`,
+  `CREATE INDEX IF NOT EXISTS edition_candidates_rna ON edition_candidates(rna)`,
 ];
 
 export async function initializeDb(db: Client): Promise<void> {
@@ -102,6 +105,13 @@ export async function saveProfile(db: Client, input: TargetingProfile): Promise<
     return { version, criteria, createdAt };
   });
 }
+// Reuse the version holding exactly these criteria, so built-in targeting stays traceable.
+export async function ensureProfile(db: Client, input: TargetingProfile): Promise<StoredProfile> {
+  const criteria = targetingProfileSchema.parse(input);
+  const payload = JSON.stringify(criteria);
+  const existing = await row<ProfileRow>(db, "SELECT version, payload, created_at FROM targeting_profiles WHERE payload = ? ORDER BY version DESC LIMIT 1", [payload]);
+  return existing ? profileFromRow(existing) : saveProfile(db, criteria);
+}
 export async function listRuns(db: Db, limit = 50): Promise<StoredRun[]> {
   return (await rows<RunRow>(db, "SELECT r.*, EXISTS(SELECT 1 FROM dossiers d WHERE d.run_id = r.id) AS dossier_ready FROM test_runs r ORDER BY r.created_at DESC, r.rowid DESC LIMIT ?", [limit])).map(runFromRow);
 }
@@ -125,11 +135,12 @@ export async function findDuplicates(db: Db, inputs: TestInput[]): Promise<Dupli
 export class DuplicateError extends Error {
   constructor(public matches: DuplicateMatch[]) { super("Une ou plusieurs associations ont déjà été examinées."); }
 }
-export async function createRuns(db: Client, rawInputs: TestInput[], allowDuplicates = false): Promise<StoredRun[]> {
+export async function createRuns(db: Client, rawInputs: TestInput[], allowDuplicates = false, profileVersion?: number): Promise<StoredRun[]> {
   if (rawInputs.length < 1 || rawInputs.length > 10) throw new Error("Choisissez de 1 à 10 associations.");
   const inputs = rawInputs.map(input => testInputSchema.parse(input));
   return atomic(db, async tx => {
-    const profile = await getLatestProfile(tx);
+    const chosen = profileVersion === undefined ? null : await row<ProfileRow>(tx, "SELECT version, payload, created_at FROM targeting_profiles WHERE version = ?", [profileVersion]);
+    const profile = profileVersion === undefined ? await getLatestProfile(tx) : chosen && profileFromRow(chosen);
     if (!profile) throw new Error("Enregistrez d’abord votre ciblage.");
     const duplicates = await findDuplicates(tx, inputs);
     if (duplicates.length && !allowDuplicates) throw new DuplicateError(duplicates);

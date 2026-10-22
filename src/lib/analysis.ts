@@ -110,7 +110,7 @@ Chaque fait doit inclure evidence avec un extrait exact très court (160 caract�
         headers: { Authorization: `Bearer ${config.key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: config.model, max_tokens: config.tokens,
           response_format: openRouter ? { type: 'json_schema', json_schema: { name: 'association_dossier', strict: true, schema } } : { type: 'json_object' },
-          ...(openRouter ? { provider: { require_parameters: true } } : {}),
+          ...(openRouter ? { provider: { require_parameters: true }, usage: { include: true } } : {}),
           ...(openRouter && config.model === 'deepseek/deepseek-v4.1-flash' ? { reasoning: { enabled: false } } : {}),
           messages: [{ role: 'system', content: instructions + contract + '\nContrôle final : qualification.*.claimIds et opportunities.factClaimIds ne doivent contenir que des identifiants de claims dont kind vaut fact, avec une citation exacte. Si un axe reste inconnu, écris « À vérifier » et utilise claimIds: []. Ne relie jamais une qualification à une hypothèse ou un inconnu. Le siège national et une implantation lyonnaise sont distincts : précise lequel la source décrit.' }, { role: 'user', content: JSON.stringify({ association: runInfo.input, criteria: { ...runInfo.profileSnapshot, offer: runInfo.profileSnapshot.offer || DEFAULT_ASSOCIATION_OFFER }, pages }) }] }),
       });
@@ -125,6 +125,9 @@ Chaque fait doit inclure evidence avec un extrait exact très court (160 caract�
       id: z.string().optional(), provider: z.string().optional(), model: z.string().optional(),
       choices: z.array(z.object({ message: z.object({ content: z.string().nullable().optional(), refusal: z.string().nullable().optional() }), finish_reason: z.string().nullable().optional() })).min(1),
     }).safeParse(envelope);
+    // Usage is informative only: a missing or odd value never rejects the analysis.
+    const usage = z.object({ prompt_tokens: z.number().nonnegative().optional(), completion_tokens: z.number().nonnegative().optional(), cost: z.number().nonnegative().optional() }).safeParse((envelope as { usage?: unknown } | null)?.usage);
+    if (usage.success) Object.assign(diagnostic, { promptTokens: usage.data.prompt_tokens, completionTokens: usage.data.completion_tokens, cost: usage.data.cost });
     if (!parsed.success) throw new HttpError(502, "Le fournisseur n'a pas renvoyé de réponse d'analyse exploitable. Aucune fiche n'a été enregistrée.");
     const json = parsed.data;
     const choice = json.choices[0];

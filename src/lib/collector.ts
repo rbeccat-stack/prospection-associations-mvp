@@ -7,6 +7,7 @@ import { load } from "cheerio";
 import { z } from "zod";
 import { sourceRecordSchema } from "./schemas";
 import { directorySirenFromUrl, officialRecord } from "./discovery";
+import { joafeIdFromUrl, joafeNotice } from "./joafe";
 
 export const collectedPageSchema = z.object({ source: sourceRecordSchema, text: z.string().max(18000), error: z.string().optional() });
 export type CollectedPage = z.infer<typeof collectedPageSchema>;
@@ -79,20 +80,71 @@ async function download(raw: string, originalHost: string, redirects = 0): Promi
   return { html: result.html, url: target.url.toString() };
 }
 
-export async function collectPage(raw: string): Promise<CollectedPage> {
+// Internal pages most useful to qualify an association, in priority order.
+const SITE_PAGE_KINDS = [
+  /contact|nous[-_ ]?contacter|coordonn/i,
+  /adh[eé]r|adh[eé]sion|inscri|rejoindre|devenir[-_ ]membre|cotisation/i,
+  /qui[-_ ]sommes|[àa][-_ ]propos|l[-_’']?association|pr[ée]sentation|notre[-_ ]histoire|[ée]quipe/i,
+  /agenda|programme|[ée]v[ée]nement|actualit|saison|concert|spectacle|activit[ée]s|ateliers?|cours/i,
+  /b[ée]n[ée]vol|soutenir|faire[-_ ]un[-_ ]don|partenai|participer/i,
+];
+
+export function siteLinks(html: string, baseUrl: string, max = 4): string[] {
+  const $ = load(html);
+  const base = new URL(baseUrl);
+  const host = base.hostname.replace(/^www\./, '');
+  const links: { url: string; label: string }[] = [];
+  $('a[href]').each((_, element) => {
+    try {
+      const url = new URL($(element).attr('href') || '', base);
+      url.hash = '';
+      if (!['http:', 'https:'].includes(url.protocol) || url.hostname.replace(/^www\./, '') !== host) return;
+      if (/\.(pdf|jpe?g|png|gif|webp|svg|zip|docx?|xlsx?|pptx?|mp3|mp4)$/i.test(url.pathname)) return;
+      if (url.pathname.replace(/\/+$/, '') === base.pathname.replace(/\/+$/, '') && !url.search) return;
+      links.push({ url: url.toString(), label: `${decodeURIComponent(url.pathname)} ${$(element).text()}`.replace(/\s+/g, ' ') });
+    } catch { /* Ignore invalid links; never execute or follow them here. */ }
+  });
+  const selected: string[] = [];
+  for (const kind of SITE_PAGE_KINDS) {
+    const match = links.find(link => kind.test(link.label) && !selected.includes(link.url));
+    if (match) selected.push(match.url);
+    if (selected.length >= max) break;
+  }
+  return selected;
+}
+
+async function collectHtml(raw: string): Promise<{ page: CollectedPage; html?: string }> {
   const source: CollectedPage['source'] = { id: randomUUID(), url: raw, label: new URL(raw).hostname, origin: 'public_page', consultedAt: new Date().toISOString(), accessStatus: 'unavailable' };
   try {
     const directorySiren = directorySirenFromUrl(raw);
     if (directorySiren) {
       const record = await officialRecord(directorySiren);
-      return { source: { ...source, url: record.url, label: record.label, accessStatus: 'available' }, text: record.text };
+      return { page: { source: { ...source, url: record.url, label: record.label, accessStatus: 'available' }, text: record.text } };
+    }
+    const noticeId = joafeIdFromUrl(raw);
+    if (noticeId) {
+      const notice = await joafeNotice(noticeId);
+      return { page: { source: { ...source, url: notice.url, label: notice.label, accessStatus: 'available' }, text: notice.text } };
     }
     const response = await download(raw, new URL(raw).hostname.replace(/^www\./, ''));
     const parsed = extractPage(response.html, response.url);
     if (parsed.text.length < 80) throw new Error("Contenu insuffisant ou page nécessitant JavaScript.");
-    return { source: { ...source, url: response.url, label: parsed.title || source.label, accessStatus: 'available' }, text: parsed.text };
+    return { page: { source: { ...source, url: response.url, label: parsed.title || source.label, accessStatus: 'available' }, text: parsed.text }, html: response.html };
   } catch (error) {
-    const known = error instanceof Error && /^(URL publique|Les adresses|Redirection|Le site|Cette page|Page trop|Trop de|Contenu insuffisant|Résolution|L’annuaire public|SIREN introuvable)/.test(error.message);
-    return { source, text: '', error: known ? (error as Error).message : "Impossible de consulter cette page. Vérifiez l'URL ou essayez une autre source publique." };
+    const known = error instanceof Error && /^(URL publique|Les adresses|Redirection|Le site|Cette page|Page trop|Trop de|Contenu insuffisant|Résolution|L’annuaire public|SIREN introuvable|Le Journal officiel)/.test(error.message);
+    return { page: { source, text: '', error: known ? (error as Error).message : "Impossible de consulter cette page. Vérifiez l'URL ou essayez une autre source publique." } };
   }
+}
+
+export async function collectPage(raw: string): Promise<CollectedPage> {
+  return (await collectHtml(raw)).page;
+}
+
+// Homepage first, then a few internal pages chosen from its links. Unreadable
+// internal pages are left out; an unreadable homepage is returned with its error.
+export async function collectSite(raw: string, maxPages = 5): Promise<CollectedPage[]> {
+  const home = await collectHtml(raw);
+  if (!home.html || home.page.source.accessStatus !== 'available') return [home.page];
+  const pages = await Promise.all(siteLinks(home.html, home.page.source.url || raw, maxPages - 1).map(url => collectPage(url)));
+  return [home.page, ...pages.filter(page => page.source.accessStatus === 'available')];
 }

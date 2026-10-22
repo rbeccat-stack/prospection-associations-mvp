@@ -27,6 +27,10 @@ export type AnalysisDiagnostic = {
   finishReason?: string;
   httpStatus?: number;
   contentCharacters?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  // Provider-reported cost of the call (OpenRouter credits, in USD), when available.
+  cost?: number;
   rootType?: string;
   rootFields?: (string | number)[];
   issues?: { path: (string | number)[]; code: string }[];
