@@ -1,4 +1,5 @@
 import { randomInt, randomUUID } from 'node:crypto';
+import { lookup } from 'node:dns/promises';
 import type { Client } from '@libsql/client';
 import { DEFAULT_ASSOCIATION_OFFER, duplicateKey, type Dossier, type TargetingProfile, type TestInput } from './schemas';
 import { createRuns, ensureProfile, getDossier, getRun, row, rows, run, type Db } from './store';
@@ -37,6 +38,7 @@ export type EditionView = {
 export type EngineDeps = {
   fetcher?: typeof fetch;
   random?: (max: number) => number;
+  resolve?: (hostname: string) => Promise<boolean>;
   collect?: (website: string) => Promise<CollectedPage[]>;
   analyze?: typeof analyzeWithAi;
 };
@@ -76,8 +78,30 @@ async function availableRecords(db: Db, domain: JoafeDomain, fetcher: typeof fet
   return records.filter((record, index) => !seenRna.has(record.rna) && !seenKeys.has(keys[index]));
 }
 
+// Many declared sites have since disappeared: a domain that no longer exists is not drawn.
+// A temporary DNS failure keeps the candidate; the collection step will report it.
+async function domainExists(hostname: string): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([lookup(hostname), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), 4000); })]);
+    return true;
+  } catch (error) {
+    return !['ENOTFOUND', 'EAI_NONAME', 'EAI_NODATA'].includes(String((error as { code?: unknown }).code || ''));
+  } finally { clearTimeout(timer); }
+}
+
+async function liveShortlist(records: JoafeRecord[], resolve: (hostname: string) => Promise<boolean>): Promise<JoafeRecord[]> {
+  const shortlist: JoafeRecord[] = [];
+  for (let start = 0; start < records.length && shortlist.length < EDITION_SHORTLIST; start += EDITION_SHORTLIST) {
+    const batch = records.slice(start, start + EDITION_SHORTLIST);
+    const alive = await Promise.all(batch.map(record => resolve(new URL(record.website).hostname)));
+    shortlist.push(...batch.filter((_, index) => alive[index]));
+  }
+  return shortlist.slice(0, EDITION_SHORTLIST);
+}
+
 export async function startEdition(db: Client, deps: EngineDeps = {}): Promise<EditionView> {
-  const fetcher = deps.fetcher || fetch, random = deps.random || randomInt;
+  const fetcher = deps.fetcher || fetch, random = deps.random || randomInt, resolve = deps.resolve || domainExists;
   const active = await row<{ id: string }>(db, "SELECT id FROM editions WHERE state = 'running' LIMIT 1");
   if (active) throw new HttpError(409, 'Une édition est déjà en cours. Reprenez-la avant d’en lancer une autre.');
   const previous = await row<{ domain_code: string }>(db, 'SELECT domain_code FROM editions ORDER BY created_at DESC, rowid DESC LIMIT 1');
@@ -85,12 +109,12 @@ export async function startEdition(db: Client, deps: EngineDeps = {}): Promise<E
   const domains = shuffle((await eligibleDomains(fetcher)).filter(domain => domain.code !== previous?.domain_code), random);
   let chosen: { domain: JoafeDomain; records: JoafeRecord[] } | null = null;
   for (const domain of domains.slice(0, DOMAIN_ATTEMPTS)) {
-    const records = await availableRecords(db, domain, fetcher);
+    const records = await liveShortlist(shuffle(await availableRecords(db, domain, fetcher), random), resolve);
     if (records.length) { chosen = { domain, records }; break; }
   }
   if (!chosen) throw new HttpError(404, 'Aucune catégorie tirée ne contient d’association lyonnaise encore inédite avec un site déclaré. Relancez une édition.');
   const profile = await ensureProfile(db, INTEGRATED_PROFILE);
-  const shortlist = shuffle(chosen.records, random).slice(0, EDITION_SHORTLIST);
+  const shortlist = chosen.records;
   const id = randomUUID(), now = new Date().toISOString();
   const statements = [
     { sql: "INSERT INTO editions(id, domain_code, domain_label, domain_family, profile_version, max_analyses, state, error, lock_until, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'running', NULL, NULL, ?, ?)", args: [id, chosen.domain.code, chosen.domain.label, chosen.domain.family, profile.version, EDITION_MAX_ANALYSES, now, now] },

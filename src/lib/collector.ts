@@ -25,7 +25,8 @@ export async function publicTarget(raw: string) {
     new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Résolution du site trop longue.")), 4000); }),
   ]).finally(() => clearTimeout(timer!));
   if (!addresses.length || addresses.some(({ address }) => !isPublicAddress(address))) throw new Error("Les adresses locales ou privées ne peuvent pas être collectées.");
-  return { url, address: addresses[0] };
+  // Prefer IPv4: many hosting networks (Vercel functions included) cannot reach IPv6.
+  return { url, address: addresses.find(({ family }) => family === 4) || addresses[0] };
 }
 
 export function extractPage(html: string, baseUrl?: string) {
@@ -43,6 +44,8 @@ export function extractPage(html: string, baseUrl?: string) {
       } catch { /* Ignore invalid links; never execute or follow them here. */ }
     }
   });
+  // Keep menu entries and table cells apart ("Enjeux Contexte", not "EnjeuxContexte").
+  $('a,td,th,dt,dd,button,label,figcaption').append(' ');
   $('p,br,li,h1,h2,h3,div,section').append('\n');
   const text = $('body').text().replace(/[\t\r ]+/g, ' ').replace(/\n\s*\n/g, '\n').trim().slice(0, 18000);
   return { title, text };
@@ -50,7 +53,10 @@ export function extractPage(html: string, baseUrl?: string) {
 
 async function download(raw: string, originalHost: string, redirects = 0): Promise<{ html: string; url: string }> {
   const target = await publicTarget(raw);
-  if (target.url.hostname.replace(/^www\./, '') !== originalHost) throw new Error("Redirection vers un autre site : ajoutez cette URL explicitement.");
+  if (target.url.hostname.replace(/^www\./, '') !== originalHost) {
+    if (/(^|\.)accounts\.google\.com$|(^|[.-])(login|signin|auth)[.-]/i.test(target.url.hostname) || /\/(login|signin|connexion|ServiceLogin)/i.test(target.url.pathname)) throw new Error("Redirection vers une page de connexion : le site est privé ou supprimé.");
+    throw new Error(`Redirection vers un autre site (${target.url.hostname}) : ajoutez cette URL explicitement.`);
+  }
   const result = await new Promise<{ html: string; location?: string }>((resolve, reject) => {
     const request = (target.url.protocol === 'https:' ? https : http).request(target.url, {
       method: 'GET', agent: false, family: target.address.family,
@@ -64,7 +70,7 @@ async function download(raw: string, originalHost: string, redirects = 0): Promi
       if (!/^(text\/html|text\/plain|application\/xhtml\+xml)/i.test(response.headers['content-type'] || '')) { response.resume(); reject(new Error("Cette page n'est pas un document HTML ou texte.")); return; }
       let size = 0;
       const chunks: Buffer[] = [];
-      response.on('data', (chunk: Buffer) => { size += chunk.length; if (size > 1_000_000) request.destroy(new Error("Page trop volumineuse (limite 1 Mo).")); else chunks.push(chunk); });
+      response.on('data', (chunk: Buffer) => { size += chunk.length; if (size > 3_000_000) request.destroy(new Error("Page trop volumineuse (limite 3 Mo).")); else chunks.push(chunk); });
       response.on('end', () => resolve({ html: Buffer.concat(chunks).toString('utf8') }));
       response.on('error', reject);
     });
@@ -113,6 +119,18 @@ export function siteLinks(html: string, baseUrl: string, max = 4): string[] {
   return selected;
 }
 
+// Readable causes for network failures; raw system messages are never shown.
+export function networkMessage(error: unknown): string {
+  const code = String((error as { code?: unknown })?.code || '');
+  if (['ENOTFOUND', 'EAI_NONAME', 'EAI_NODATA'].includes(code)) return "Le domaine du site n'existe plus (adresse introuvable).";
+  if (code === 'EAI_AGAIN') return "Le nom du site n'a pas pu être résolu pour le moment. Réessayez plus tard.";
+  if (code === 'ECONNREFUSED') return "Le serveur du site refuse la connexion.";
+  if (['ECONNRESET', 'EPIPE'].includes(code)) return "Le serveur du site a interrompu la connexion.";
+  if (['ETIMEDOUT', 'ENETUNREACH', 'EHOSTUNREACH'].includes(code)) return "Le serveur du site est injoignable.";
+  if (/CERT|SSL|TLS|SELF_SIGNED|UNABLE_TO_VERIFY/.test(code)) return "Le certificat de sécurité du site est invalide ou expiré.";
+  return "Impossible de consulter cette page. Vérifiez l'URL ou essayez une autre source publique.";
+}
+
 async function collectHtml(raw: string): Promise<{ page: CollectedPage; html?: string }> {
   const source: CollectedPage['source'] = { id: randomUUID(), url: raw, label: new URL(raw).hostname, origin: 'public_page', consultedAt: new Date().toISOString(), accessStatus: 'unavailable' };
   try {
@@ -132,7 +150,7 @@ async function collectHtml(raw: string): Promise<{ page: CollectedPage; html?: s
     return { page: { source: { ...source, url: response.url, label: parsed.title || source.label, accessStatus: 'available' }, text: parsed.text }, html: response.html };
   } catch (error) {
     const known = error instanceof Error && /^(URL publique|Les adresses|Redirection|Le site|Cette page|Page trop|Trop de|Contenu insuffisant|Résolution|L’annuaire public|SIREN introuvable|Le Journal officiel)/.test(error.message);
-    return { page: { source, text: '', error: known ? (error as Error).message : "Impossible de consulter cette page. Vérifiez l'URL ou essayez une autre source publique." } };
+    return { page: { source, text: '', error: known ? (error as Error).message : networkMessage(error) } };
   }
 }
 

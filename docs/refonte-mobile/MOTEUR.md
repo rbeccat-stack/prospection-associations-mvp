@@ -16,14 +16,16 @@ Le 22 octobre 2026, 44 catégories remplissaient ces conditions. Environ 1 240 a
 
 ## Sélection des candidates
 
-Dans la catégorie tirée, le moteur garde une association par RNA (annonce la plus récente), écarte celles qui ont publié une dissolution, celles dont le site est un réseau social ou une page Linktree, celles déjà proposées dans une édition et celles déjà examinées à la main (même site). Douze candidates sont tirées au hasard dans cette liste.
+Dans la catégorie tirée, le moteur garde une association par RNA (annonce la plus récente), écarte celles qui ont publié une dissolution, celles dont le site est un réseau social ou une page Linktree, celles déjà proposées dans une édition et celles déjà examinées à la main (même site). Il tire ensuite douze candidates au hasard, en écartant les sites dont le nom de domaine n’existe plus : lors de la première édition réelle, quatre sites déclarés sur neuf avaient disparu.
 
 ## Préparation pas à pas
 
 Chaque appel serveur réalise une seule étape, pour rester sous la limite de durée des fonctions Vercel :
 
 1. **Lecture du site** : page d’accueil, puis jusqu’à quatre pages internes choisies parmi ses liens (contact, adhésion, présentation, agenda ou activités, bénévolat ou dons). L’annonce du Journal officiel est ajoutée comme source. Un site illisible écarte la candidate **sans appel IA**.
-2. **Analyse IA** : l’analyse existante, avec toutes ses vérifications de citations, contacts et sources.
+2. **Analyse IA** : l’analyse existante, avec toutes ses vérifications de citations, contacts et sources. Une citation est comparée mot à mot : la casse, la ponctuation et le style des apostrophes ou guillemets sont ignorés (l’IA réécrit souvent « ’ » en « ' »). Si le passage exact figure dans une autre page collectée que celle indiquée, il est rattaché à cette page. Une citation absente de toutes les pages fait toujours rejeter l’analyse.
+
+La collecte se connecte en IPv4 lorsque le site en propose une adresse (les fonctions Vercel ne joignent pas l’IPv6), accepte des pages jusqu’à 3 Mo et indique la cause d’un échec : domaine disparu, certificat invalide, site privé, connexion refusée.
 
 Une édition s’arrête après **cinq analyses IA** (échecs compris) ou quand les candidates sont épuisées. La limite quotidienne `AI_DAILY_REQUEST_LIMIT` reste prioritaire : si elle est atteinte, l’édition se met en pause et reprend plus tard sans relire les sites. Un verrou empêche deux étapes simultanées ; un dossier déjà enregistré n’est jamais repayé.
 

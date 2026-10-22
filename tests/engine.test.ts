@@ -5,7 +5,8 @@ import { createClient, type Client } from "@libsql/client";
 import { dossierSchema } from "../src/lib/schemas";
 import { createRuns, ensureProfile, getRun, initializeDb, row, run as sqlRun, saveProfile } from "../src/lib/store";
 import { defaultProfile } from "../src/lib/schemas";
-import { collectPage, siteLinks, type CollectedPage } from "../src/lib/collector";
+import { collectPage, extractPage, networkMessage, siteLinks, type CollectedPage } from "../src/lib/collector";
+import { validateAnalysis } from "../src/lib/analysis";
 import { domainRecords, eligibleDomains, joafeIdFromUrl, joafeNoticeUrl, normalizeWebsite, shuffle } from "../src/lib/joafe";
 import { advanceEdition, closeEdition, INTEGRATED_PROFILE, publication, startEdition, type EngineDeps } from "../src/lib/engine";
 import { workflow } from "../src/lib/workflow";
@@ -13,6 +14,8 @@ import { HttpError } from "../src/lib/http";
 
 // Identity permutation: shuffle(items, keep) returns items unchanged.
 const keep = (max: number) => max - 1;
+// Test domains (*.example) never resolve: DNS checks are simulated.
+const online = async () => true;
 
 const nomenclature = [
   { domaine_path: "6000/", domaine_libelle: "culture, pratiques d’activités artistiques, culturelles" },
@@ -80,7 +83,7 @@ async function database() {
 
 function engineDeps(db: Client, calls: { collect: string[]; analyze: string[] }, failures: { limit?: boolean } = {}): EngineDeps {
   return {
-    fetcher: joafeFetcher, random: keep,
+    fetcher: joafeFetcher, random: keep, resolve: online,
     collect: async website => { calls.collect.push(website); return [sitePage(website, undefined, !website.includes("orchestre-b"))]; },
     analyze: async (database, runInfo, pages) => {
       if (failures.limit) throw new HttpError(429, "Limite quotidienne d'appels IA atteinte (journée UTC).");
@@ -144,17 +147,51 @@ test("moteur : édition tirée sans doublon, ciblage intégré versionné une se
   const db = await database();
   await saveProfile(db, defaultProfile);
   await createRuns(db, [{ type: "url", url: "https://jazz-d.example/" }]);
-  const edition = await startEdition(db, { fetcher: joafeFetcher, random: keep });
+  const edition = await startEdition(db, { fetcher: joafeFetcher, random: keep, resolve: online });
   assert.equal(edition.domainCode, "6000/6030");
   assert.deepEqual(edition.candidates.map(candidate => candidate.rna), ["W690000001", "W690000002", "W690000006"]);
-  await assert.rejects(startEdition(db, { fetcher: joafeFetcher, random: keep }), /déjà en cours/);
+  await assert.rejects(startEdition(db, { fetcher: joafeFetcher, random: keep, resolve: online }), /déjà en cours/);
   const profile = await ensureProfile(db, INTEGRATED_PROFILE);
   assert.equal((await ensureProfile(db, INTEGRATED_PROFILE)).version, profile.version);
   await closeEdition(db, edition.id);
   // The previous category is not drawn twice in a row.
-  const next = await startEdition(db, { fetcher: joafeFetcher, random: keep });
+  const next = await startEdition(db, { fetcher: joafeFetcher, random: keep, resolve: online });
   assert.equal(next.domainCode, "6000/6025");
   db.close();
+});
+
+test("moteur : domaines disparus écartés dès le tirage, sans occuper de place", async () => {
+  const db = await database();
+  const checked: string[] = [];
+  const edition = await startEdition(db, { fetcher: joafeFetcher, random: keep, resolve: async hostname => { checked.push(hostname); return hostname !== "www.orchestre-b.example"; } });
+  assert.deepEqual(edition.candidates.map(candidate => candidate.rna), ["W690000001", "W690000006", "W690000007"]);
+  assert.ok(checked.includes("www.orchestre-b.example"));
+  db.close();
+});
+
+test("collecte : causes réseau lisibles et menus séparés dans le texte extrait", () => {
+  assert.match(networkMessage(Object.assign(new Error("getaddrinfo"), { code: "ENOTFOUND" })), /n'existe plus/);
+  assert.match(networkMessage({ code: "CERT_HAS_EXPIRED" }), /certificat/);
+  assert.match(networkMessage({ code: "ECONNREFUSED" }), /refuse la connexion/);
+  assert.match(networkMessage(new Error("autre")), /Impossible de consulter/);
+  const { text } = extractPage('<body><ul><li><a href="/enjeux">ENJEUX</a><ul><li><a href="/contexte">CONTEXTE</a></li></ul></li></ul><table><tr><td>Lundi</td><td>Chorale</td></tr></table></body>');
+  assert.ok(!text.includes("ENJEUXCONTEXTE"));
+  assert.match(text, /ENJEUX\s+CONTEXTE/);
+  assert.match(text, /Lundi\s+Chorale/);
+});
+
+test("analyse : citation retrouvée malgré la typographie et rattachée à la page qui la contient", () => {
+  const site = sitePage("https://asso.example/", "L’association de loi 1901 organise des « ateliers » chaque semaine. Un agenda est publié chaque mois.");
+  const notice = sitePage("https://www.journal-officiel.gouv.fr/pages/associations-detail-annonce/?q.id=id:202600000001", "Objet déclaré : chanter ensemble à Lyon");
+  const raw = structuredClone(fakeDossier([site, notice], true));
+  raw.claims[0].sourceIds = [notice.source.id];
+  raw.claims[0].evidence = [{ sourceId: notice.source.id, quote: "L'association de loi 1901 organise des \"ateliers\"" }];
+  const result = validateAnalysis(raw, [site, notice]);
+  assert.equal(result.claims[0].evidence[0].sourceId, site.source.id);
+  assert.ok(result.claims[0].sourceIds.includes(site.source.id));
+  const invented = structuredClone(raw);
+  invented.claims[0].evidence = [{ sourceId: site.source.id, quote: "L'association recrute un salarié à temps plein" }];
+  assert.throws(() => validateAnalysis(invented, [site, notice]), /passage cité/);
 });
 
 test("moteur : collecte puis analyse pas à pas, site illisible écarté sans appel IA", async () => {
@@ -210,7 +247,7 @@ test("moteur : limite quotidienne mise en pause, reprise sans double collecte", 
 
 test("moteur : étape concurrente refusée et carte publiée seulement avec un fait du site", async () => {
   const db = await database();
-  const edition = await startEdition(db, { fetcher: joafeFetcher, random: keep });
+  const edition = await startEdition(db, { fetcher: joafeFetcher, random: keep, resolve: online });
   await sqlRun(db, "UPDATE editions SET lock_until = ? WHERE id = ?", [new Date(Date.now() + 60_000).toISOString(), edition.id]);
   await assert.rejects(advanceEdition(db, edition.id, { collect: async () => [] }), /déjà en cours/);
   await assert.rejects(closeEdition(db, edition.id), /étape est en cours/);

@@ -11,6 +11,8 @@ import { analysisOutputSchema, prepareAnalysisPayload } from './analysis-identif
 import { ANALYSIS_CONTRACT, diagnosticIssues, diagnosticToken, responseShape, saveAnalysisDiagnostic, type AnalysisDiagnostic } from './analysis-diagnostics';
 
 const normalized = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fr');
+// Quotes are checked word for word; case, punctuation and apostrophe or quotation mark styles are ignored.
+const words = (text: string) => text.normalize('NFKC').toLocaleLowerCase('fr').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 export function validateAnalysis(raw: unknown, pages: CollectedPage[]): Dossier {
   const dossier = dossierStructureSchema.parse(prepareAnalysisPayload(raw, pages));
   const sources = new Map(pages.map(page => [page.source.id, page]));
@@ -61,12 +63,21 @@ export function validateAnalysis(raw: unknown, pages: CollectedPage[]): Dossier 
   for (const field of ['location', 'website', 'activity'] as const) {
     if (dossier.identity[field] && !backed(dossier.identity.sourceIds[field])) throw new HttpError(422, 'Analyse rejetée : champ d’identité sans source disponible.');
   }
+  const pageWords = new Map(pages.filter(page => page.source.accessStatus === 'available').map(page => [page.source.id, words(page.text)]));
   for (const claim of dossier.claims) {
     if (claim.kind !== 'fact') continue;
     if (!claim.evidence.length) throw new HttpError(422, 'Analyse rejetée : un fait ne contient pas de passage justificatif.');
     for (const proof of claim.evidence) {
-      const page = sources.get(proof.sourceId);
-      if (!claim.sourceIds.includes(proof.sourceId) || page?.source.accessStatus !== 'available' || normalized(proof.quote).length < 8 || !normalized(page.text).includes(normalized(proof.quote))) throw new HttpError(422, 'Analyse rejetée : un passage cité ne figure pas dans la source.');
+      const quote = words(proof.quote);
+      const quoted = (id: string) => !!pageWords.get(id)?.includes(quote);
+      if (quote.length < 8) throw new HttpError(422, 'Analyse rejetée : un passage cité ne figure pas dans la source.');
+      if (!quoted(proof.sourceId)) {
+        // The exact passage cited under the wrong page is attached to the page that contains it.
+        const actual = [...pageWords.keys()].find(quoted);
+        if (!actual) throw new HttpError(422, 'Analyse rejetée : un passage cité ne figure pas dans la source.');
+        proof.sourceId = actual;
+      }
+      if (!claim.sourceIds.includes(proof.sourceId)) claim.sourceIds.push(proof.sourceId);
     }
   }
   for (const contact of dossier.contacts) {
