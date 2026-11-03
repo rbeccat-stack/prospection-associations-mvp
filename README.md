@@ -59,6 +59,6 @@ La page d’accueil présente un premier parcours manuel : profil Muodim, ajout 
 
 ## Première recherche entreprises connectée
 
-La page d’accueil recherche via l’API Sirene 3.11 : dénomination/SIREN/SIRET, territoire, activité, effectif et pagination. Les profils peuvent être ajoutés aux cartes. Les appels passent par `/api/companies/search`. Configurer `INSEE_API_KEY` côté serveur ; une erreur est affichée si la source est injoignable. Voir [les fonctionnalités et limites](docs/RECHERCHE-ENTREPRISES.md).
+La page d’accueil recherche via l’API Sirene 3.11 : dénomination/SIREN/SIRET, territoire, activité, effectif et pagination. Les profils peuvent être ajoutés aux cartes. Les appels passent par `/api/companies/search`. Configurer `API_KEY_SIRENE` côté serveur ; une erreur est affichée si la source est injoignable. Voir [les fonctionnalités et limites](docs/RECHERCHE-ENTREPRISES.md).
 
 `/apercu` redirige vers la nouvelle page d’accueil ; l’ancienne maquette reste consultable sur `/apercu/index.html`.

@@ -60,4 +60,4 @@ Aucune variable supplémentaire. Une édition interroge l’API publique du Jour
 
 ## API Sirene
 
-Renseigner `INSEE_API_KEY` dans les variables du serveur (Vercel Production ou `.env.local`) avec la clé d’intégration publique créée sur le portail API Insee. Redéployer ou redémarrer après ajout. Ne pas transmettre la clé dans une conversation ni utiliser un préfixe `NEXT_PUBLIC_`. Voir [la recherche Sirene](docs/RECHERCHE-ENTREPRISES.md).
+Renseigner `API_KEY_SIRENE` dans les variables du serveur (Vercel Production ou `.env.local`) avec la clé d’intégration publique créée sur le portail API Insee. Redéployer ou redémarrer après ajout. Ne pas transmettre la clé dans une conversation ni utiliser un préfixe `NEXT_PUBLIC_`. Voir [la recherche Sirene](docs/RECHERCHE-ENTREPRISES.md).

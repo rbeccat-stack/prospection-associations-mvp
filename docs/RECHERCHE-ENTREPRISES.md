@@ -4,7 +4,7 @@ La nouvelle recherche utilise `https://api.insee.fr/api-sirene/3.11/siret`, et n
 
 ## Configuration
 
-Créer une application sur le portail API de l’Insee, souscrire à l’API Sirene ouverte et générer sa clé d’intégration. Sur Vercel, dans le projet, Settings > Environment Variables, ajouter `INSEE_API_KEY` avec la clé, pour l’environnement Production. Ne pas ajouter le préfixe `NEXT_PUBLIC_` et ne pas placer la clé dans un fichier versionné. Relancer un déploiement après changement de variable. En local, ajouter `INSEE_API_KEY=...` à `.env.local` puis redémarrer le serveur.
+Créer une application sur le portail API de l’Insee, souscrire à l’API Sirene ouverte et générer sa clé d’intégration. Sur Vercel, dans le projet, Settings > Environment Variables, ajouter `API_KEY_SIRENE` avec la clé, pour l’environnement Production. Ne pas ajouter le préfixe `NEXT_PUBLIC_` et ne pas placer la clé dans un fichier versionné. Relancer un déploiement après changement de variable. En local, ajouter `API_KEY_SIRENE=...` à `.env.local` puis redémarrer le serveur.
 
 Le serveur passe la clé dans l’en-tête `X-INSEE-Api-Key-Integration`. Elle n’est ni dans l’URL, ni dans les données retournées au navigateur. Une clé absente ou refusée produit un message explicite ; aucune réponse fictive n’est utilisée.
 

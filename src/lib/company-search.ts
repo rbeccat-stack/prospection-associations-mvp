@@ -35,8 +35,8 @@ const responseSchema=z.object({header:z.object({total:z.number().int().nonnegati
 const attempts:number[]=[];
 function reserveSlot(){const now=Date.now();while(attempts.length&&attempts[0]<=now-60000)attempts.shift();if(attempts.length>=25)throw new CompanySearchError(429,"Limite locale de recherche atteinte. Réessayez dans quelques instants.",String(Math.max(1,Math.ceil((attempts[0]+60000-now)/1000))));attempts.push(now);}
 export async function searchCompanies(raw:CompanySearch,fetcher:typeof fetch=fetch):Promise<CompanySearchResult> {
-  const input=searchSchema.parse(raw);const url=companySearchUrl(input);const apiKey=process.env.INSEE_API_KEY?.trim();
-  if(!apiKey)throw new CompanySearchError(503,"La clé API Sirene n’est pas configurée. Ajoutez INSEE_API_KEY aux variables d’environnement du serveur.");
+  const input=searchSchema.parse(raw);const url=companySearchUrl(input);const apiKey=process.env.API_KEY_SIRENE?.trim();
+  if(!apiKey)throw new CompanySearchError(503,"La clé API Sirene n’est pas configurée. Ajoutez API_KEY_SIRENE aux variables d’environnement du serveur.");
   if(fetcher===fetch)reserveSlot();
   let response:Response;
   try {response=await fetcher(url,{headers:{Accept:"application/json","X-INSEE-Api-Key-Integration":apiKey,"User-Agent":"SwipeAndProspect/0.1"},signal:AbortSignal.timeout(12000),cache:"no-store",redirect:"error"});}
