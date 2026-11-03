@@ -1,28 +1,28 @@
-# Recherche connectée à l’Annuaire — première brique
+# Recherche d’entreprises via l’API Sirene 3.11
 
-La page d’accueil ouvre désormais « Rechercher ». Aucune clé API n’est nécessaire. Le navigateur appelle notre route serveur `GET /api/companies/search`, qui interroge exclusivement `https://recherche-entreprises.api.gouv.fr/search`.
+La nouvelle recherche utilise `https://api.insee.fr/api-sirene/3.11/siret`, et non l’API Recherche d’entreprises. Les fiches externes de consultation restent des liens vers l’Annuaire ; elles ne servent pas à obtenir les résultats.
 
-## Utilisation
-- Chercher par nom/adresse ou SIREN/SIRET.
-- Pour une liste : choisir Lyon (9 arrondissements), Rhône ou France ; éventuellement une section d’activité et une tranche d’effectif.
-- Lancer la recherche à la demande. Dix résultats bruts par page, jusqu’à 100 pages dans ce pilote ; aucune extraction exhaustive ni recherche quotidienne.
-- Consulter la fiche officielle ; cliquer « Ajouter à découvrir » pour retrouver l’entreprise dans les cartes, puis garder/passer.
-- Les profils ajoutés et leurs références restent dans le navigateur. Les résultats de recherche et filtres ne sont pas sauvegardés après changement d’écran.
+## Configuration
 
-## Interprétation
-Le texte recherche l’identité et l’adresse ; ce n’est pas une recherche sémantique d’activité. La section et l’effectif concernent l’unité légale. Le territoire porte sur les établissements. Le siège peut être ailleurs. Une implantation locale est affichée seulement si la réponse contient un établissement actif dans la zone ; sinon l’adresse locale reste non confirmée. Les établissements connexes renvoyés par l’API ne sont pas une liste exhaustive de tous les établissements.
+Créer une application sur le portail API de l’Insee, souscrire à l’API Sirene ouverte et générer sa clé d’intégration. Sur Vercel, dans le projet, Settings > Environment Variables, ajouter `INSEE_API_KEY` avec la clé, pour l’environnement Production. Ne pas ajouter le préfixe `NEXT_PUBLIC_` et ne pas placer la clé dans un fichier versionné. Relancer un déploiement après changement de variable. En local, ajouter `INSEE_API_KEY=...` à `.env.local` puis redémarrer le serveur.
 
-Un SIREN/SIRET ignore tous les filtres dans l’API officielle. Les filtres sont désactivés et cette particularité est expliquée. Le pilote n’affiche que les entreprises actives, des catégories juridiques 1xxx à 6xxx, hors association 5195 et hors associations/administrations signalées par l’API. Il ne prétend donc pas couvrir toutes les entités de l’Annuaire. Le total brut peut dépasser le nombre de profils affichables.
+Le serveur passe la clé dans l’en-tête `X-INSEE-Api-Key-Integration`. Elle n’est ni dans l’URL, ni dans les données retournées au navigateur. Une clé absente ou refusée produit un message explicite ; aucune réponse fictive n’est utilisée.
 
-L’effectif est affiché avec son année quand disponible ; inconnu ne veut pas dire zéro. Filtrer par taille exclut les effectifs non renseignés. Une source administrative ne confirme ni un besoin, ni un recrutement, ni le caractère « startup ». Aucun email, site web, logo ou besoin supposé n’est inventé lors de l’ajout.
+## Fonctionnement et limites
 
-## Robustesse
-Entrées validées et bornées côté serveur, URL fournisseur fixe, délai de 12 secondes, redirections refusées, réponse fournisseur validée, erreurs visibles sans faux résultats de secours, Retry-After transmis pour les limites, requête précédente annulée quand les filtres changent, dédoublonnage SIREN à l’affichage et à l’ajout. Pas de relance automatique. L’accès privé de production existant couvre la nouvelle route.
+Une recherche correspond à une requête `/siret` (10 établissements par page, pagination `debut`, 100 pages maximum). L’API compte les établissements ; le système retire les doublons SIREN dans chaque page et à l’ajout aux cartes. Des doublons peuvent réapparaître entre pages ; le total n’est pas un nombre d’entreprises uniques. L’adresse est celle de l’établissement retourné ; elle n’est identifiée comme siège que si `etablissementSiege` le confirme. Les éléments masqués `[ND]` et l’adresse d’une unité à diffusion partielle ne sont pas affichés.
 
-## Vérification lors de la livraison
-55 tests automatisés passent, dont 9 nouveaux tests pour cette recherche (réponses fournisseur simulées), et TypeScript passe. Un appel réel via le nouveau service n’a pas réussi à joindre l’Annuaire dans cet environnement, dont les connexions sortantes avaient été refusées pendant l’audit. Aucun résultat de production n’est donc prétendu validé par ces tests. Il reste à vérifier le réseau et une réponse réelle depuis l’hébergement avant de considérer l’accès opérationnel en production.
+Filtres : dénomination officielle, zone (neuf codes postaux lyonnais / Rhône / France), sections d’activité et tranches d’effectifs de l’unité légale. Les inconnus sont conservés si aucun filtre d’effectif n’est choisi ; ils sont exclus par le filtre. Les sections sont traduites en préfixes NAF rév. 2 ; l’Insee prévoit le changement vers NAF 2025 en janvier 2027 et cette traduction devra être adaptée. La recherche par identifiant ignore volontairement les autres filtres. Les entreprises individuelles dont l’identité est masquée ne sont pas affichées. Les catégories hors 1xxx–6xxx et les associations sont écartées ; ce n’est pas une liste exhaustive de toutes les unités du répertoire.
 
-## Documentation source
-Documentation officielle consultée pendant l’implémentation : https://recherche-entreprises.api.gouv.fr/docs/ . La limite publiée est 7 requêtes/seconde/IP et 30/seconde/ASN, avec un débit non garanti ; l’interface ne déclenche qu’une recherche manuelle et bloque la relance pendant le délai de limitation indiqué, plafonné à 5 minutes dans le pilote. Prévoir une limitation globale et un cache serveur si l’usage devient soutenu ou multi-utilisateur.
+## Quota et erreurs
 
-Le serveur de développement webpack démarre (Ready), mais le contrôle HTTP local a expiré dans cet environnement ; la compilation de la page à la demande et le parcours dans un navigateur n’ont donc pas été validés.
+L’accès public est limité par l’Insee à 30 requêtes par minute. En plus du contrôle fournisseur, le serveur limite chaque instance à 25 requêtes sur 60 secondes, sans relance automatique, et transmet `Retry-After` si disponible. Cette limite en mémoire ne coordonne pas plusieurs instances serverless : elle ne garantit pas un quota global si plusieurs instances ou applications partagent une clé. Pour un usage soutenu ou multi-instance, ajouter un compteur partagé atomique avant d’élargir l’usage.
+
+## Vérification
+
+Les tests utilisent des réponses Sirene simulées, notamment pour la clé absente, les données partielles et les erreurs. La clé réelle n’étant pas encore fournie, aucun appel authentifié réel ni résultat de production ne peut être garanti avant configuration et essai avec une entreprise connue (par exemple SIREN 901931105). L’ancienne fonctionnalité de découverte d’associations dans `/atelier` utilise toujours ses propres sources.
+
+Références :
+- https://portail-api.insee.fr/catalog/api/2ba0e549-5587-3ef1-9082-99cd865de66f/doc?aq=ALL
+- https://static.insee.fr/api-sirene/Insee_API_publique_modalites_connexion.pdf
+- https://www.insee.fr/fr/information/9053325

@@ -3,47 +3,18 @@ import assert from "node:assert/strict";
 import { searchSchema, companySearchUrl, searchCompanies, CompanySearchError } from "../src/lib/company-search";
 import { GET } from "../src/app/api/companies/search/route";
 const input=searchSchema.parse({});
-const company={siren:"901931105",nom_complet:"MUODIM",nature_juridique:"5710",etat_administratif:"A",activite_principale:"62.01Z",tranche_effectif_salarie:"02",annee_tranche_effectif_salarie:"2022",siege:{adresse:"PARIS",code_postal:"75001",etat_administratif:"A"},matching_etablissements:[{adresse:"ANCIEN LYON",code_postal:"69003",etat_administratif:"F"},{adresse:"31 RUE SAINT MAXIMIN 69003 LYON",code_postal:"69003",siret:"90193110500018",etat_administratif:"A"}]};
-const payload=(results:unknown[])=>({results,page:1,total_pages:2,total_results:15});
-const response=(results:unknown[]) => (async()=>Response.json(payload(results))) as typeof fetch;
-
-test("entreprises : filtres serveur, périmètre local et effectif sans exclure les inconnus par défaut",()=>{
-  const u=new URL(companySearchUrl(input));
-  assert.equal(u.hostname,"recherche-entreprises.api.gouv.fr");assert.equal(u.searchParams.get("est_association"),"false");assert.equal(u.searchParams.get("est_administration"),"false");
-  assert.equal(u.searchParams.get("etat_administratif"),"A");assert.equal(u.searchParams.get("code_postal")?.split(",").length,9);assert.equal(u.searchParams.get("tranche_effectif_salarie"),null);
-  const filtered=new URL(companySearchUrl({...input,territory:"rhone",size:"medium",sector:"M",page:2}));
-  assert.equal(filtered.searchParams.get("departement"),"69");assert.equal(filtered.searchParams.get("code_postal"),null);assert.equal(filtered.searchParams.get("tranche_effectif_salarie"),"11,12");assert.equal(filtered.searchParams.get("section_activite_principale"),"M");assert.equal(filtered.searchParams.get("page"),"2");
+const record={siren:"901931105",siret:"90193110500018",statutDiffusionEtablissement:"O",etablissementSiege:true,uniteLegale:{etatAdministratifUniteLegale:"A",statutDiffusionUniteLegale:"O",categorieJuridiqueUniteLegale:"5710",denominationUniteLegale:"MUODIM",activitePrincipaleUniteLegale:"62.01Z",dateCreationUniteLegale:"2021-07-29",trancheEffectifsUniteLegale:"02",anneeEffectifsUniteLegale:"2022"},adresseEtablissement:{numeroVoieEtablissement:"31",typeVoieEtablissement:"RUE",libelleVoieEtablissement:"SAINT MAXIMIN",codePostalEtablissement:"69003",libelleCommuneEtablissement:"LYON"},periodesEtablissement:[{etatAdministratifEtablissement:"A",dateFin:null}]};
+const payload=(etablissements:unknown[])=>({header:{total:15,debut:0,nombre:10},etablissements});
+const fake=(records:unknown[])=> (async()=>Response.json(payload(records))) as typeof fetch;
+process.env.INSEE_API_KEY="synthetic-test-key";
+test("Sirene : filtres géographiques, activité et effectif dans une requête sécurisée",()=>{
+ const url=new URL(companySearchUrl({...input,territory:"rhone",size:"medium",sector:"J",page:2}));assert.equal(url.origin,"https://api.insee.fr");assert.equal(url.pathname,"/api-sirene/3.11/siret");assert.match(url.searchParams.get("q")!,/codePostalEtablissement:69\*/);assert.match(url.searchParams.get("q")!,/trancheEffectifsUniteLegale:11/);assert.match(url.searchParams.get("q")!,/activitePrincipaleUniteLegale:62\*/);assert.equal(url.searchParams.get("debut"),"10");assert.ok(url.searchParams.get("date"));assert.ok(!url.toString().includes("synthetic-test-key"));
 });
-test("entreprises : SIREN et SIRET ignorent explicitement les filtres",()=>{
-  for(const q of ["901931105","90193110500018"]){const u=new URL(companySearchUrl({...input,q,size:"large"}));assert.equal(u.searchParams.get("q"),q);assert.equal(u.searchParams.get("code_postal"),null);assert.equal(u.searchParams.get("tranche_effectif_salarie"),null);}
-});
-test("entreprises : valeurs invalides et clés externes refusées avant tout réseau",()=>{
-  for(const bad of [{page:0},{page:101},{page:1.5},{territory:"elsewhere"},{size:"bogus"},{q:"a".repeat(121)},{url:"http://localhost"}])assert.equal(searchSchema.safeParse(bad).success,false);
-});
-test("entreprises : siège distinct du site local actif, effectif daté et provenance",async()=>{
-  const r=await searchCompanies(input,response([company]));const c=r.companies[0];assert.equal(c.headOffice,"PARIS");assert.equal(c.localAddress,"31 RUE SAINT MAXIMIN 69003 LYON");assert.equal(c.workforce,"3 à 5 salariés");assert.equal(c.workforceYear,"2022");assert.ok(c.consultedAt);assert.ok(c.officialUrl.endsWith("901931105"));
-  const direct=await searchCompanies({...input,q:"901931105"},response([company]));assert.equal(direct.directLookup,true);assert.equal(direct.companies[0].localAddress,null);
-});
-test("entreprises : associations, administrations, cessées, catégorie inconnue et doublons écartés",async()=>{
-  const r=await searchCompanies(input,response([company,company,{...company,siren:"111111111",nature_juridique:"9220"},{...company,siren:"222222222",etat_administratif:"C"},{...company,siren:"333333333",nature_juridique:null},{...company,siren:"444444444",complements:{est_administration:true}},{...company,siren:"555555555",nature_juridique:"5195"}]));assert.equal(r.companies.length,1);assert.equal(r.omitted,6);
-});
-test("entreprises : effectifs et implantation inconnus restent explicites",async()=>{
-  const r=await searchCompanies(input,response([{...company,tranche_effectif_salarie:"NN",annee_tranche_effectif_salarie:null,matching_etablissements:[]}]));assert.equal(r.companies[0].workforce,"Effectif inconnu");assert.equal(r.companies[0].workforceYear,null);assert.equal(r.companies[0].localAddress,null);
-});
-test("entreprises : aucun résultat de secours si réseau, JSON ou contrat échoue",async()=>{
-  for(const fetcher of [(async()=>{throw new Error("EACCES");}) as typeof fetch,(async()=>new Response("<html>error</html>")) as typeof fetch,response([{...company,siren:"bad"}])])await assert.rejects(searchCompanies(input,fetcher),(e:unknown)=>e instanceof CompanySearchError&&e.status===502);
-  const empty=await searchCompanies(input,response([]));assert.equal(empty.companies.length,0);
-});
-test("entreprises : limite du fournisseur et Retry-After préservés",async()=>{
-  await assert.rejects(searchCompanies(input,(async()=>new Response("",{status:429,headers:{"Retry-After":"60"}})) as typeof fetch),(e:unknown)=>e instanceof CompanySearchError&&e.status===429&&e.retryAfter==="60");
-});
-test("route entreprises : validation, réponse réelle du service simulé et absence de cache public",async()=>{
-  const old=globalThis.fetch;let calls=0;
-  globalThis.fetch=(async(url)=>{calls++;assert.equal(new URL(String(url)).hostname,"recherche-entreprises.api.gouv.fr");return Response.json(payload([company]));}) as typeof fetch;
-  try{
-    const bad=await GET(new Request("http://localhost/api/companies/search?page=0"));assert.equal(bad.status,400);assert.equal(calls,0);
-    const repeated=await GET(new Request("http://localhost/api/companies/search?q=a&q=b"));assert.equal(repeated.status,400);
-    const good=await GET(new Request("http://localhost/api/companies/search?q=Muodim"));assert.equal(good.status,200);assert.equal((await good.json()).companies[0].siren,"901931105");assert.equal(good.headers.get("cache-control"),"private, no-store");
-    globalThis.fetch=(async()=>new Response("",{status:429,headers:{"Retry-After":"30"}})) as typeof fetch;const limited=await GET(new Request("http://localhost/api/companies/search"));assert.equal(limited.status,429);assert.equal(limited.headers.get("retry-after"),"30");
-  } finally {globalThis.fetch=old;}
-});
+test("Sirene : recherche directe identifiant sans filtre de territoire",()=>{for(const q of ["901931105","90193110500018"]){const url=new URL(companySearchUrl({...input,q,size:"large"}));assert.equal(url.searchParams.get("q"),`${q.length===9?"siren":"siret"}:${q}`);}});
+test("Sirene : entrée textuelle échappée et paramètres rejetés",()=>{const url=new URL(companySearchUrl({...input,q:'muodim" OR siren:*'}));assert.ok(!url.searchParams.get('q')!.includes('muodim" OR'));for(const bad of [{page:0},{page:101},{sector:"X"},{q:"a".repeat(121)},{url:"http://localhost"}])assert.equal(searchSchema.safeParse(bad).success,false);});
+test("Sirene : clé privée uniquement dans l’en-tête et conversion établissement",async()=>{let called=false;const f=(async(u,opts)=>{called=true;assert.equal(new URL(String(u)).hostname,"api.insee.fr");const h=new Headers(opts?.headers);assert.equal(h.get("X-INSEE-Api-Key-Integration"),"synthetic-test-key");assert.ok(!String(u).includes("synthetic-test-key"));return Response.json(payload([record]));}) as typeof fetch;const result=await searchCompanies(input,f);assert.equal(called,true);assert.equal(result.companies[0].name,"MUODIM");assert.equal(result.companies[0].localSiret,"90193110500018");assert.equal(result.companies[0].headOffice,"31 RUE SAINT MAXIMIN 69003 LYON");assert.equal(result.companies[0].workforceYear,"2022");assert.equal(result.totalResults,15);});
+test("Sirene : dédoublonnage, exclusion entreprises fermées et associations",async()=>{const result=await searchCompanies(input,fake([record,record,{...record,siren:"123456789",siret:"12345678900000",uniteLegale:{...record.uniteLegale,categorieJuridiqueUniteLegale:"9220"}},{...record,siren:"222222222",siret:"22222222200000",periodesEtablissement:[{dateFin:null,etatAdministratifEtablissement:"F"}]}]));assert.equal(result.companies.length,1);assert.equal(result.omitted,3);});
+test("Sirene : diffusion partielle ne rend pas une adresse confidentielle",async()=>{const r=await searchCompanies(input,fake([{...record,statutDiffusionEtablissement:"P",etablissementSiege:false}]));assert.equal(r.companies[0].localAddress,"69003 LYON");assert.equal(r.companies[0].headOffice,null);});
+test("Sirene : erreur de clé, quota, réseau et JSON affichés sans fuite",async()=>{const f=(status:number)=>(async()=>new Response("secret",{status,headers:{"retry-after":"30"}})) as typeof fetch;await assert.rejects(searchCompanies(input,f(403)),(e:unknown)=>e instanceof CompanySearchError&&e.status===503&&!e.message.includes("secret"));await assert.rejects(searchCompanies(input,f(429)),(e:unknown)=>e instanceof CompanySearchError&&e.status===429&&e.retryAfter==="30");await assert.rejects(searchCompanies(input,(async()=>{throw new Error("network")}) as typeof fetch));await assert.rejects(searchCompanies(input,f(200)));const empty=await searchCompanies(input,f(404));assert.equal(empty.totalResults,0);});
+test("Sirene : clé absente bloque l’appel et nomme la variable",async()=>{const saved=process.env.INSEE_API_KEY;delete process.env.INSEE_API_KEY;let called=false;try{await assert.rejects(searchCompanies(input,(async()=>{called=true;return new Response()}) as typeof fetch),/INSEE_API_KEY/);assert.equal(called,false);}finally{process.env.INSEE_API_KEY=saved;}});
+test("route Sirene : paramètres invalides et résultat simulé sans cache",async()=>{const old=globalThis.fetch;globalThis.fetch=(async()=>Response.json(payload([record]))) as typeof fetch;try{assert.equal((await GET(new Request("http://localhost/api/companies/search?page=0"))).status,400);const good=await GET(new Request("http://localhost/api/companies/search?q=Muodim"));assert.equal(good.status,200);assert.equal((await good.json()).companies[0].siren,"901931105");assert.equal(good.headers.get("cache-control"),"private, no-store");}finally{globalThis.fetch=old;}});
