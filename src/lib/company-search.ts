@@ -12,15 +12,15 @@ export function companySearchUrl(raw:CompanySearch) {
   const input=searchSchema.parse(raw), clauses:string[]=[];
   if(isDirectLookup(input.q)) clauses.push(`${input.q.length===9?"siren":"siret"}:${input.q}`);
   else {
-    clauses.push("etatAdministratifUniteLegale:A", "etatAdministratifEtablissement:A");
+    clauses.push("periode(etatAdministratifUniteLegale:A)", "periode(etatAdministratifEtablissement:A)");
     if(input.territory==="lyon") clauses.push(field("codePostalEtablissement",Array.from({length:9},(_,i)=>`6900${i+1}`)));
     if(input.territory==="rhone") clauses.push("codePostalEtablissement:69*");
-    if(input.sector!=="all") clauses.push(field("activitePrincipaleUniteLegale",sectorDivisions[input.sector].map(v=>`${v}*`)));
+    if(input.sector!=="all") clauses.push(`(${sectorDivisions[input.sector].map(v=>`periode(activitePrincipaleUniteLegale:${v}*)`).join(" OR ")})`);
     if(input.size!=="any") clauses.push(field("trancheEffectifsUniteLegale",sizes[input.size]));
     if(input.q) {
       const safe=input.q.replace(/[\\"\u0000-\u001f]/g," ").trim();
       if(!safe) throw new CompanySearchError(400,"Saisissez un nom d’entreprise valide.");
-      clauses.push(`denominationUniteLegale:"${safe}"`);
+      clauses.push(`periode(denominationUniteLegale:"${safe}")`);
     }
   }
   const url=new URL(COMPANY_DIRECTORY);url.searchParams.set("q",clauses.join(" AND "));url.searchParams.set("nombre","10");url.searchParams.set("debut",String((input.page-1)*10));url.searchParams.set("date",new Date().toISOString().slice(0,10));

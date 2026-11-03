@@ -18,3 +18,14 @@ test("Sirene : diffusion partielle ne rend pas une adresse confidentielle",async
 test("Sirene : erreur de clé, quota, réseau et JSON affichés sans fuite",async()=>{const f=(status:number)=>(async()=>new Response("secret",{status,headers:{"retry-after":"30"}})) as typeof fetch;await assert.rejects(searchCompanies(input,f(403)),(e:unknown)=>e instanceof CompanySearchError&&e.status===503&&!e.message.includes("secret"));await assert.rejects(searchCompanies(input,f(429)),(e:unknown)=>e instanceof CompanySearchError&&e.status===429&&e.retryAfter==="30");await assert.rejects(searchCompanies(input,(async()=>{throw new Error("network")}) as typeof fetch));await assert.rejects(searchCompanies(input,f(200)));const empty=await searchCompanies(input,f(404));assert.equal(empty.totalResults,0);});
 test("Sirene : clé absente bloque l’appel et nomme la variable",async()=>{const saved=process.env.API_KEY_SIRENE;delete process.env.API_KEY_SIRENE;let called=false;try{await assert.rejects(searchCompanies(input,(async()=>{called=true;return new Response()}) as typeof fetch),/API_KEY_SIRENE/);assert.equal(called,false);}finally{process.env.API_KEY_SIRENE=saved;}});
 test("route Sirene : paramètres invalides et résultat simulé sans cache",async()=>{const old=globalThis.fetch;globalThis.fetch=(async()=>Response.json(payload([record]))) as typeof fetch;try{assert.equal((await GET(new Request("http://localhost/api/companies/search?page=0"))).status,400);const good=await GET(new Request("http://localhost/api/companies/search?q=Muodim"));assert.equal(good.status,200);assert.equal((await good.json()).companies[0].siren,"901931105");assert.equal(good.headers.get("cache-control"),"private, no-store");}finally{globalThis.fetch=old;}});
+
+test("Sirene : champs historisés enveloppés dans periode pour les filtres actuels",()=>{
+ const q=new URL(companySearchUrl({...input,territory:"rhone",size:"medium",sector:"F"})).searchParams.get("q")!;
+ assert.match(q,/periode\(etatAdministratifUniteLegale:A\)/);
+ assert.match(q,/periode\(etatAdministratifEtablissement:A\)/);
+ for(const n of ["41","42","43"]) assert.ok(q.includes(`periode(activitePrincipaleUniteLegale:${n}*)`));
+ assert.ok(q.includes("codePostalEtablissement:69*"));
+ assert.ok(q.includes("trancheEffectifsUniteLegale:11"));
+ const name=new URL(companySearchUrl({...input,q:"MUODIM"})).searchParams.get("q")!;
+ assert.ok(name.includes('periode(denominationUniteLegale:"MUODIM")'));
+});
