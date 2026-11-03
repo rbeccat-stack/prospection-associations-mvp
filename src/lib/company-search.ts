@@ -27,6 +27,25 @@ export function companySearchUrl(raw:CompanySearch) {
   return url.toString();
 }
 export class CompanySearchError extends Error { constructor(public status:number,message:string,public retryAfter?:string){super(message);} }
+
+// Sirene returns useful parser details in header.message on HTTP 400. Limit the
+// read, accept only JSON text, and remove the configured credential before
+// showing it in this private app. Never expose raw headers, requests or HTML.
+async function queryErrorDetail(response:Response, apiKey:string):Promise<string|null> {
+  if(apiKey.length<4 || !response.headers.get("content-type")?.toLowerCase().includes("application/json") || !response.body)return null;
+  try {
+    const reader=response.body.getReader();const chunks:Uint8Array[]=[];let size=0;
+    while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>8192){await reader.cancel();return null;}chunks.push(value);}
+    const bytes=new Uint8Array(size);let offset=0;for(const part of chunks){bytes.set(part,offset);offset+=part.length;}
+    const parsed=JSON.parse(new TextDecoder().decode(bytes));
+    const message=parsed?.header?.message;
+    if(typeof message!=="string")return null;
+    let clean=message.replaceAll(apiKey,"[masqué]").replaceAll(encodeURIComponent(apiKey),"[masqué]");
+    clean=clean.replace(/(?:authorization|x-insee-api-key-integration|api[_ -]?key|bearer)\s*[:=]?\s*[^\s,;]+/gi,"[identifiant masqué]").replace(/[\u0000-\u001f\u007f]/g," ").replace(/\s+/g," ").trim();
+    if(!clean || clean.toLowerCase()==="bad request")return null;
+    return clean.slice(0,400);
+  } catch {return null;}
+}
 const text=z.string().nullish();
 const unit=z.object({etatAdministratifUniteLegale:text,statutDiffusionUniteLegale:text,categorieJuridiqueUniteLegale:text,identifiantAssociationUniteLegale:text,denominationUniteLegale:text,nomUniteLegale:text,prenomUsuelUniteLegale:text,prenom1UniteLegale:text,activitePrincipaleUniteLegale:text,dateCreationUniteLegale:text,trancheEffectifsUniteLegale:text,anneeEffectifsUniteLegale:text});
 const address=z.object({numeroVoieEtablissement:text,indiceRepetitionEtablissement:text,typeVoieEtablissement:text,libelleVoieEtablissement:text,codePostalEtablissement:text,libelleCommuneEtablissement:text});
@@ -44,6 +63,7 @@ export async function searchCompanies(raw:CompanySearch,fetcher:typeof fetch=fet
   if(response.status===429){const retry=response.headers.get("retry-after");throw new CompanySearchError(429,"L’Insee limite temporairement les recherches. Patientez avant de réessayer.",retry&&/^\d{1,5}$/.test(retry)?retry:"60");}
   if(response.status===401||response.status===403)throw new CompanySearchError(503,"L’Insee refuse l’accès. Vérifiez la clé API et la souscription à l’API Sirene.");
   if(response.status===404){return {companies:[],page:input.page,totalPages:0,totalResults:0,omitted:0,directLookup:isDirectLookup(input.q),sourceUrl:COMPANY_DIRECTORY,consultedAt:new Date().toISOString()};}
+  if(response.status===400){const detail=await queryErrorDetail(response,apiKey);throw new CompanySearchError(502,`L’Insee a rejeté cette recherche (HTTP 400).${detail?` Détail : ${detail}`:" Aucun détail exploitable communiqué."}`);}
   if(!response.ok)throw new CompanySearchError(502,`L’API Sirene ne peut pas répondre à cette recherche (HTTP ${response.status}).`);
   let payload:z.infer<typeof responseSchema>;try{payload=responseSchema.parse(await response.json());}catch{throw new CompanySearchError(502,"La réponse de l’API Sirene est illisible ou incomplète.");}
   const seen=new Set<string>(),companies:DirectoryCompany[]=[],consultedAt=new Date().toISOString(),directLookup=isDirectLookup(input.q);

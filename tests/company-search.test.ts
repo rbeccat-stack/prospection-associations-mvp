@@ -29,3 +29,14 @@ test("Sirene : champs historisés enveloppés dans periode pour les filtres actu
  const name=new URL(companySearchUrl({...input,q:"MUODIM"})).searchParams.get("q")!;
  assert.ok(name.includes('periode(denominationUniteLegale:"MUODIM")'));
 });
+
+test("Sirene : détail JSON de l’erreur 400 visible sans divulguer la clé",async()=>{
+ const key=process.env.API_KEY_SIRENE!;
+ const f=(async()=>Response.json({header:{statut:400,message:`Champ inconnu et clé ${key}`}},{status:400})) as typeof fetch;
+ await assert.rejects(searchCompanies(input,f),(e:unknown)=>e instanceof CompanySearchError&&e.message.includes("Champ inconnu")&&!e.message.includes(key));
+});
+test("Sirene : corps HTML ou détails trop volumineux non affichés",async()=>{
+ for(const r of [new Response("<html>secret</html>",{status:400,headers:{"content-type":"text/html"}}),Response.json({header:{message:"x".repeat(9000)}},{status:400})]){
+  await assert.rejects(searchCompanies(input,(async()=>r) as typeof fetch),(e:unknown)=>e instanceof CompanySearchError&&e.message.includes("Aucun détail exploitable")&&!e.message.includes("secret"));
+ }
+});
