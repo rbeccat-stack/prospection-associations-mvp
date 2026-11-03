@@ -55,8 +55,10 @@ Le [deuxième pilote](PILOTE.md#deuxième-pilote--méthode-à-deux-axes-29-septe
 
 ## Nouveau pilote entreprises — novembre 2026
 
-La page d’accueil présente un premier parcours manuel : profil Muodim, ajout manuel, choix garder/passer, lecture, décision et message modifiable à ouvrir dans Gmail. Les données sont locales au navigateur et ne sont pas synchronisées. Gmail ouvre un message prérempli ; aucune connexion Gmail ni aucun envoi automatique ne sont effectués. Vérifiez le destinataire. L’ancien aperçu reste accessible sur `/apercu`, l’atelier sur `/atelier`. Voir [le nouveau PRD](PRD-ENTREPRISES.md).
+La page d’accueil présente un premier parcours manuel : profil Muodim, ajout manuel, choix garder/passer, lecture, décision et message modifiable à ouvrir dans Gmail. Les données sont locales au navigateur et ne sont pas synchronisées. Gmail ouvre un message prérempli ; aucune connexion Gmail ni aucun envoi automatique ne sont effectués. Vérifiez le destinataire. L’ancien aperçu reste accessible sur `/apercu/index.html`, l’atelier sur `/atelier`. Voir [le nouveau PRD](PRD-ENTREPRISES.md).
 
 ## Première recherche entreprises connectée
 
 La page d’accueil ouvre la recherche dans l’Annuaire des entreprises : nom/SIREN/SIRET, territoire, section d’activité, effectif et pagination. Les profils peuvent être ajoutés aux cartes sans doublon SIREN. Les appels passent par `/api/companies/search` et ne nécessitent pas de clé. La disponibilité réseau vers le fournisseur doit être vérifiée sur l’hébergement ; une erreur est affichée si la source est injoignable. Voir [les fonctionnalités et limites](docs/RECHERCHE-ENTREPRISES.md).
+
+`/apercu` redirige vers la nouvelle page d’accueil ; l’ancienne maquette reste consultable sur `/apercu/index.html`.

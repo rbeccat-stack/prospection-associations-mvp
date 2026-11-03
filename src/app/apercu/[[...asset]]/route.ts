@@ -14,7 +14,8 @@ const assets = new Map([
 // may be served; the prototype directory also contains non-public tooling.
 export async function GET(_request: Request, { params }: { params: Promise<{ asset?: string[] }> }) {
   const { asset = [] } = await params;
-  const filename = asset.length === 0 ? 'index.html' : asset.length === 1 ? asset[0] : '';
+  if (asset.length === 0) return new Response(null, { status: 307, headers: { Location: '/', 'Cache-Control': 'private, no-store' } });
+  const filename = asset.length === 1 ? asset[0] : '';
   const contentType = assets.get(filename);
   const headers = { 'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff', 'X-Robots-Tag':'noindex, nofollow', 'Referrer-Policy':'no-referrer' };
   if (!contentType) return new Response('Page introuvable.', { status:404, headers });
@@ -22,7 +23,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ass
   try {
     let content = await readFile(path.join(process.cwd(), 'prototypes', 'mobile', filename), 'utf8');
     if (filename === 'index.html') {
-      // Work with /apercu, /apercu/ and /apercu/index.html on every domain.
+      // Keep the archived preview available at /apercu/index.html.
       content = content.replace('href="styles.css"', 'href="/apercu/styles.css"').replace('src="app.js"', 'src="/apercu/app.js"');
     }
     return new Response(content, { headers:{ ...headers, 'Content-Type':contentType } });

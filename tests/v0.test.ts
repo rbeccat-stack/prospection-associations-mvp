@@ -467,7 +467,11 @@ test('accès Vercel : mot de passe requis et identifiants vérifiés', () => {
 test('aperçu mobile : fichiers servis sous leur préfixe, outils et traversée refusés', async () => {
   const request = new Request('https://swipe.example/apercu');
   const get = (asset?: string[]) => mobilePreview(request, { params:Promise.resolve({ asset }) });
-  const page = await get();
+  const redirect = await get();
+  assert.equal(redirect.status, 307);
+  assert.equal(redirect.headers.get('location'), '/');
+  assert.equal(redirect.headers.get('cache-control'), 'private, no-store');
+  const page = await get(['index.html']);
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type')!, /text\/html/);
   assert.equal(page.headers.get('cache-control'), 'private, no-store');
