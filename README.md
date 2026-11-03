@@ -1,3 +1,5 @@
+> **Mise à jour du 3 novembre 2026 :** la page d’accueil utilise le pilote entreprises décrit en fin de document. Les sections ci-dessous décrivent la version précédente pour associations.
+
 # Prospection d’associations — V0 privée
 
 Application personnelle de qualification : découverte d’associations lyonnaises via l’annuaire public, ciblage versionné, URL/saisie/CSV, collecte de six pages publiques au maximum, analyse IA configurable, dossier sourcé, brouillon éditable, versions précédentes, prévisualisation et e-mail de test vers une adresse personnelle unique.
@@ -50,3 +52,11 @@ Les tests couvrent sources et coordonnées inventées, réseau privé, origine d
 [Critères d’acceptation](ACCEPTATION-V0.md) · [Configuration](CONFIGURATION.md) · [PRD](PRD.md) · [Architecture](ARCHITECTURE.md) · [Pilote](PILOTE.md)
 
 Le [deuxième pilote](PILOTE.md#deuxième-pilote--méthode-à-deux-axes-29-septembre-2026) ajoute six fiches consultables avec deux axes qualitatifs, preuves et inconnus, sous le ciblage version 4.
+
+## Nouveau pilote entreprises — novembre 2026
+
+La page d’accueil présente un premier parcours manuel : profil Muodim, ajout manuel, choix garder/passer, lecture, décision et message modifiable à ouvrir dans Gmail. Les données sont locales au navigateur et ne sont pas synchronisées. Gmail ouvre un message prérempli ; aucune connexion Gmail ni aucun envoi automatique ne sont effectués. Vérifiez le destinataire. L’ancien aperçu reste accessible sur `/apercu`, l’atelier sur `/atelier`. Voir [le nouveau PRD](PRD-ENTREPRISES.md).
+
+## Première recherche entreprises connectée
+
+La page d’accueil ouvre la recherche dans l’Annuaire des entreprises : nom/SIREN/SIRET, territoire, section d’activité, effectif et pagination. Les profils peuvent être ajoutés aux cartes sans doublon SIREN. Les appels passent par `/api/companies/search` et ne nécessitent pas de clé. La disponibilité réseau vers le fournisseur doit être vérifiée sur l’hébergement ; une erreur est affichée si la source est injoignable. Voir [les fonctionnalités et limites](docs/RECHERCHE-ENTREPRISES.md).

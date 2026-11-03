@@ -1,8 +1,6 @@
-import { redirect } from "next/navigation";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+import CompanyPilot from "@/components/CompanyPilot";
+import "./pilot.css";
 
 export default function Home() {
-  redirect("/apercu");
+  return <CompanyPilot />;
 }

@@ -6,8 +6,8 @@ import "./opportunities.css";
 import "./editions.css";
 
 export const metadata: Metadata = {
-  title: "Dossier du jour — Prospection d’associations",
-  description: "Cockpit personnel de prospection sourcée",
+  title: "Swipe & Prospect — Candidatures spontanées",
+  description: "Découvrir des entreprises et préparer des candidatures personnalisées",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

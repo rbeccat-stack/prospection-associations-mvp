@@ -1,0 +1,91 @@
+{
+  "testedAt": "2026-11-03T10:12:02.501Z",
+  "scope": "Server HTTP probes, without credentials. EACCES means local network restrictions, not source rejection. A single sample does not validate pagination, coverage or production integration.",
+  "results": [
+    {
+      "id": "annuaire-identite",
+      "url": "https://recherche-entreprises.api.gouv.fr/search?q=901931105&per_page=1",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 181
+    },
+    {
+      "id": "annuaire-filtres",
+      "url": "https://recherche-entreprises.api.gouv.fr/search?code_postal=69003&etat_administratif=A&tranche_effectif_salarie=03,11,12&per_page=3",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 55
+    },
+    {
+      "id": "bodacc",
+      "url": "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records?limit=1&where=registre%3D%22901931105%22",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 16
+    },
+    {
+      "id": "muodim",
+      "url": "https://muodim.com/",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 28
+    },
+    {
+      "id": "lyon-startup",
+      "url": "https://lyonstartup.com/start-up",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 184
+    },
+    {
+      "id": "lyon-startup-fiche",
+      "url": "https://lyonstartup.com/start-up/abel-io",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 182
+    },
+    {
+      "id": "pepites",
+      "url": "https://lespepitestech.com/french-tech-hub/french-tech-one-lyon-saint-etienne",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 49
+    },
+    {
+      "id": "pulsalys-actualite",
+      "url": "https://www.pulsalys.fr/article/muodim-ouvre-son-capital-brgm-invest-et-iris-instruments-pour-accelerer-la-democratisation",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 40
+    },
+    {
+      "id": "pulsalys-emplois",
+      "url": "https://www.pulsalys.fr/article/rejoignez-laventure-pulsalys",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 11
+    },
+    {
+      "id": "muodim-robots",
+      "url": "https://muodim.com/robots.txt",
+      "status": null,
+      "error": "fetch failed",
+      "code": "EACCES",
+      "ms": 8
+    },
+    {
+      "id": "csv-local",
+      "ok": true,
+      "note": "Parser legacy validated on one synthetic company row; not wired into the company pilot."
+    }
+  ]
+}
