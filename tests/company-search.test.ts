@@ -19,15 +19,18 @@ test("Sirene : erreur de clé, quota, réseau et JSON affichés sans fuite",asyn
 test("Sirene : clé absente bloque l’appel et nomme la variable",async()=>{const saved=process.env.API_KEY_SIRENE;delete process.env.API_KEY_SIRENE;let called=false;try{await assert.rejects(searchCompanies(input,(async()=>{called=true;return new Response()}) as typeof fetch),/API_KEY_SIRENE/);assert.equal(called,false);}finally{process.env.API_KEY_SIRENE=saved;}});
 test("route Sirene : paramètres invalides et résultat simulé sans cache",async()=>{const old=globalThis.fetch;globalThis.fetch=(async()=>Response.json(payload([record]))) as typeof fetch;try{assert.equal((await GET(new Request("http://localhost/api/companies/search?page=0"))).status,400);const good=await GET(new Request("http://localhost/api/companies/search?q=Muodim"));assert.equal(good.status,200);assert.equal((await good.json()).companies[0].siren,"901931105");assert.equal(good.headers.get("cache-control"),"private, no-store");}finally{globalThis.fetch=old;}});
 
-test("Sirene : champs historisés enveloppés dans periode pour les filtres actuels",()=>{
+test("Sirene siret : champs entreprise courants et état établissement historisé",()=>{
  const q=new URL(companySearchUrl({...input,territory:"rhone",size:"medium",sector:"F"})).searchParams.get("q")!;
- assert.match(q,/periode\(etatAdministratifUniteLegale:A\)/);
+ assert.ok(q.includes("etatAdministratifUniteLegale:A"));
+ assert.ok(!q.includes("periode(etatAdministratifUniteLegale:"));
  assert.match(q,/periode\(etatAdministratifEtablissement:A\)/);
- for(const n of ["41","42","43"]) assert.ok(q.includes(`periode(activitePrincipaleUniteLegale:${n}*)`));
+ for(const n of ["41","42","43"]) assert.ok(q.includes(`activitePrincipaleUniteLegale:${n}*`));
+ assert.ok(!q.includes("periode(activitePrincipaleUniteLegale:"));
  assert.ok(q.includes("codePostalEtablissement:69*"));
  assert.ok(q.includes("trancheEffectifsUniteLegale:11"));
  const name=new URL(companySearchUrl({...input,q:"MUODIM"})).searchParams.get("q")!;
- assert.ok(name.includes('periode(denominationUniteLegale:"MUODIM")'));
+ assert.ok(name.includes('denominationUniteLegale:"MUODIM"'));
+ assert.ok(!name.includes('periode(denominationUniteLegale:'));
 });
 
 test("Sirene : détail JSON de l’erreur 400 visible sans divulguer la clé",async()=>{
