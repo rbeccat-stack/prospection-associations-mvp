@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import CompanyEditor from "./CompanyEditor";
+import CompanyEnrichment from "./CompanyEnrichment";
+import type { CompanyEnrichment as EnrichmentSnapshot } from "@/lib/company-enrichment-shared";
 import { type Company, type CompanyEditable, isPublicWebUrl } from "@/lib/company-records";
 
-export default function CompanyProfile({ company, onSave, onDirtyChange }: { company: Company; onSave: (changes: CompanyEditable) => void; onDirtyChange: (dirty: boolean) => void }) {
+export default function CompanyProfile({ company, onSave, onEnrich, onDirtyChange }: { company: Company; onSave: (changes: CompanyEditable) => void; onEnrich: (result: EnrichmentSnapshot) => void; onDirtyChange: (dirty: boolean) => void }) {
   const [editing, setEditing] = useState(false);
+  const [enrichmentDirty, setEnrichmentDirty] = useState(false);
+  const webDirty = useCallback((dirty: boolean) => { setEnrichmentDirty(dirty); onDirtyChange(dirty); }, [onDirtyChange]);
   const d = company.directory;
   return <>
-    <div className="profile-heading"><div><h1>{company.name}</h1><p className="muted">{company.sector || "Secteur à compléter"} · {company.city || "Localisation à compléter"}</p></div>{!editing && <button onClick={() => setEditing(true)}>Modifier la fiche</button>}</div>
+    <div className="profile-heading"><div><h1>{company.name}</h1><p className="muted">{company.sector || "Secteur à compléter"} · {company.city || "Localisation à compléter"}</p></div>{!editing && <button onClick={() => { if (!enrichmentDirty || window.confirm("Abandonner l’enrichissement non enregistré pour modifier la fiche ?")) setEditing(true); }}>Modifier la fiche</button>}</div>
     {editing ? <CompanyEditor initial={company} onDirtyChange={onDirtyChange} onCancel={() => setEditing(false)} onSave={changes => { onSave(changes); setEditing(false); }} /> : <>
       <p className="lead">{company.description || "Activité à approfondir à partir du site de l’entreprise."}</p>
       <div className="rule" /><h2>Faits et signaux observés</h2><p className="profile-text">{company.signal || "Aucune observation renseignée pour le moment."}</p>
@@ -17,6 +21,7 @@ export default function CompanyProfile({ company, onSave, onDirtyChange }: { com
       <h2>Notes personnelles</h2><p className="profile-text">{company.notes || "Aucune note pour le moment."}</p>
       {company.email && <p className="note">Contact à vérifier : {company.email}</p>}
       {company.updatedAt && <p className="note">Fiche modifiée le {new Date(company.updatedAt).toLocaleString("fr-FR")}</p>}
+      <CompanyEnrichment company={company} onSave={onEnrich} onDirtyChange={webDirty} />
     </>}
     {d && <details className="sirene-snapshot" open><summary>Données officielles Sirene</summary><p className="note">Instantané consulté le {new Date(d.consultedAt).toLocaleString("fr-FR")}. Une actualisation depuis la recherche conserve vos notes, vos sources et vos brouillons.</p><dl>
       <dt>Dénomination</dt><dd>{d.name}</dd><dt>SIREN</dt><dd>{d.siren}</dd><dt>Code APE</dt><dd>{d.activityCode || "Non renseigné"}</dd>

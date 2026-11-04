@@ -55,6 +55,8 @@ Le [deuxième pilote](PILOTE.md#deuxième-pilote--méthode-à-deux-axes-29-septe
 
 ## Nouveau pilote entreprises — novembre 2026
 
+Enrichissement web : depuis une fiche, « Enrichir depuis un site » consulte jusqu’à trois pages confirmées, montre un aperçu daté puis conserve l’instantané à part. Trois exemples documentés sont disponibles dans « Ajouter ». Aucun appel Societeinfo payant n’est lancé. Voir [les fonctionnalités, essais et limites](docs/ENRICHISSEMENT-ENTREPRISES.md).
+
 La page d’accueil présente un premier parcours manuel : profil Muodim, ajout manuel, choix garder/passer, lecture, décision et message modifiable à ouvrir dans Gmail. Les données sont locales au navigateur et ne sont pas synchronisées. Gmail ouvre un message prérempli ; aucune connexion Gmail ni aucun envoi automatique ne sont effectués. Vérifiez le destinataire. L’ancien aperçu reste accessible sur `/apercu/index.html`, l’atelier sur `/atelier`. Voir [le nouveau PRD](PRD-ENTREPRISES.md).
 
 ## Première recherche entreprises connectée

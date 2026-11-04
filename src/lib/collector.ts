@@ -51,8 +51,10 @@ export function extractPage(html: string, baseUrl?: string) {
   return { title, text };
 }
 
-async function download(raw: string, originalHost: string, redirects = 0): Promise<{ html: string; url: string }> {
+export async function downloadPublicPage(raw: string, originalHost = new URL(raw).hostname.replace(/^www\./, ''), redirects = 0, deadline = Date.now() + 16000): Promise<{ html: string; url: string }> {
+  if (Date.now() >= deadline) throw new Error("Le site n’a pas répondu dans le délai de consultation.");
   const target = await publicTarget(raw);
+  if (Date.now() >= deadline) throw new Error("Le site n’a pas répondu dans le délai de consultation.");
   if (target.url.hostname.replace(/^www\./, '') !== originalHost) {
     if (/(^|\.)accounts\.google\.com$|(^|[.-])(login|signin|auth)[.-]/i.test(target.url.hostname) || /\/(login|signin|connexion|ServiceLogin)/i.test(target.url.pathname)) throw new Error("Redirection vers une page de connexion : le site est privé ou supprimé.");
     throw new Error(`Redirection vers un autre site (${target.url.hostname}) : ajoutez cette URL explicitement.`);
@@ -74,14 +76,14 @@ async function download(raw: string, originalHost: string, redirects = 0): Promi
       response.on('end', () => resolve({ html: Buffer.concat(chunks).toString('utf8') }));
       response.on('error', reject);
     });
-    const timer = setTimeout(() => request.destroy(new Error("Le site n'a pas répondu sous 12 secondes.")), 12000);
+    const timer = setTimeout(() => request.destroy(new Error("Le site n'a pas répondu dans le délai de consultation.")), Math.min(12000, deadline - Date.now()));
     request.on('close', () => clearTimeout(timer));
     request.on('error', reject);
     request.end();
   });
   if (result.location) {
     if (redirects >= 3) throw new Error("Trop de redirections.");
-    return download(new URL(result.location, raw).toString(), originalHost, redirects + 1);
+    return downloadPublicPage(new URL(result.location, raw).toString(), originalHost, redirects + 1, deadline);
   }
   return { html: result.html, url: target.url.toString() };
 }
@@ -144,7 +146,7 @@ async function collectHtml(raw: string): Promise<{ page: CollectedPage; html?: s
       const notice = await joafeNotice(noticeId);
       return { page: { source: { ...source, url: notice.url, label: notice.label, accessStatus: 'available' }, text: notice.text } };
     }
-    const response = await download(raw, new URL(raw).hostname.replace(/^www\./, ''));
+    const response = await downloadPublicPage(raw);
     const parsed = extractPage(response.html, response.url);
     if (parsed.text.length < 80) throw new Error("Contenu insuffisant ou page nécessitant JavaScript.");
     return { page: { source: { ...source, url: response.url, label: parsed.title || source.label, accessStatus: 'available' }, text: parsed.text }, html: response.html };

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { DirectoryCompany } from "./company-search-shared";
+import { canAcceptEnrichment, enrichmentSchema, type CompanyEnrichment } from "./company-enrichment-shared";
 
 export function isPublicWebUrl(value: string): boolean {
   try { const url = new URL(value); return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password; }
@@ -29,6 +30,7 @@ const directorySchema = z.object({
 const companySchema = companyEditableSchema.extend({
   id: z.string().min(1), siren: z.string().regex(/^\d{9}$/).optional(), directory: directorySchema.optional(),
   source: z.string().default(""), updatedAt: z.string().datetime().optional(),
+  enrichment: enrichmentSchema.optional(),
   notes: z.string().max(20000).default(""), sources: z.array(sourceSchema).max(30).default([]),
 });
 export type Company = z.infer<typeof companySchema>;
@@ -53,6 +55,14 @@ export function parsePilotState(raw: unknown): PilotState {
 export function saveCompany(company: Company, changes: CompanyEditable, now = new Date().toISOString()): Company {
   // Pick only editable properties: callers cannot overwrite a SIREN or snapshot.
   return { ...company, ...companyEditableSchema.parse(changes), source: "", updatedAt: now };
+}
+
+export function saveCompanyEnrichment(company: Company, raw: CompanyEnrichment): Company {
+  const enrichment = enrichmentSchema.parse(raw);
+  if (!canAcceptEnrichment(enrichment)) throw new Error("Enrichissement indisponible ou identité contradictoire.");
+  if (enrichment.siren !== company.siren) throw new Error("L’enrichissement ne correspond pas au SIREN de cette fiche.");
+  // Website excerpts remain separate from personal analysis and official data.
+  return { ...company, enrichment };
 }
 
 export function importDirectoryCompany(state: PilotState, record: DirectoryCompany): PilotState {

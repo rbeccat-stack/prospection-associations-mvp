@@ -16,7 +16,7 @@ L'angle proposé est pertinent pour l'entreprise ; l'utilisateur peut créer une
 1. Recherche Sirene 3.11 : connexion et recherche multicritère opérationnelles selon les essais confirmés par Rémi.
 2. Qualité des résultats : contrôles des critères sur les réponses, dédoublonnage, pagination ordonnée/bornée, inconnus et exclusions explicités ; tests automatisés sur réponses simulées.
 3. Fiches entreprises : édition, sources structurées, notes et distinction faits/hypothèses/données officielles ; actualisation Sirene sans écraser les annotations ou brouillons. Stockage encore local au navigateur, avec reprise des profils existants.
-4. Enrichissement : évaluer les sources web et Societeinfo sur un petit échantillon, avec traçabilité et validation de l’angle de candidature.
+4. Enrichissement : module web à la demande et aperçu sourcé implémentés ; cas Muodim, ReCom et Locabri accessibles depuis « Ajouter ». Societeinfo évalué, connexion différée. Collecte réelle depuis l’hébergement et pertinence des pistes à valider. Voir `docs/ENRICHISSEMENT-ENTREPRISES.md`.
 5. Stockage privé synchronisé et sauvegarde avant un usage régulier entre téléphone et ordinateur.
 6. Préparer les éditions quotidiennes après validation de la qualité, du budget et de la cadence.
 7. Étudier l'intégration Gmail OAuth et les permissions nécessaires, avec contrôle avant envoi.
@@ -28,7 +28,7 @@ L'ancien atelier /atelier et le prototype /apercu/index.html restent disponibles
 Envoi automatique, découverte automatique, données synchronisées, recherche IA, scraping, génération automatisée de preuves, notifications et installation PWA.
 
 ## Mise à jour — connexion Sirene
-La recherche à la demande et l’import de fiches officielles utilisent désormais l’API Sirene 3.11 de l’Insee. Rémi a confirmé les essais Muodim et Rhône / Construction / 10–49 salariés après correction des requêtes. Voir `docs/RECHERCHE-ENTREPRISES.md` pour les contrôles ajoutés et les limites des tests. L’enrichissement web et la préparation quotidienne restent à développer.
+La recherche à la demande et l’import de fiches officielles utilisent désormais l’API Sirene 3.11 de l’Insee. Rémi a confirmé les essais Muodim et Rhône / Construction / 10–49 salariés après correction des requêtes. Voir `docs/RECHERCHE-ENTREPRISES.md` pour les contrôles ajoutés et les limites des tests. L’enrichissement web à la demande est décrit dans `docs/ENRICHISSEMENT-ENTREPRISES.md` ; la préparation quotidienne reste à développer.
 
 ## Source d’enrichissement à prévoir : Societeinfo
 
