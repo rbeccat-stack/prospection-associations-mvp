@@ -62,3 +62,9 @@ La page d’accueil présente un premier parcours manuel : profil Muodim, ajout 
 La page d’accueil recherche via l’API Sirene 3.11 : dénomination/SIREN/SIRET, territoire, activité, effectif et pagination. Les profils peuvent être ajoutés aux cartes. Les appels passent par `/api/companies/search`. Configurer `API_KEY_SIRENE` côté serveur ; une erreur est affichée si la source est injoignable. Voir [les fonctionnalités et limites](docs/RECHERCHE-ENTREPRISES.md).
 
 `/apercu` redirige vers la nouvelle page d’accueil ; l’ancienne maquette reste consultable sur `/apercu/index.html`.
+
+## Fiches et qualité de recherche — 4 novembre 2026
+
+Les profils sont modifiables depuis « À découvrir » ou « Ma sélection » : description, observations, hypothèses, notes, contact et plusieurs sources (titre, lien, date). Les données Sirene restent dans un bloc séparé. Réimporter un SIREN actualise ce bloc sans effacer les informations personnelles, les choix ou les brouillons. Les anciennes données locales sont reprises. Le stockage reste propre au navigateur et les résultats de recherche sont conservés entre onglets jusqu’au rechargement.
+
+La recherche vérifie aussi les critères sur les réponses reçues, distingue les motifs d’exclusion, signale les valeurs inconnues et stabilise la pagination. Les 1 000 premiers établissements sont accessibles ; les totaux de l’API ne représentent pas des entreprises uniques. Les contrôles automatisés utilisent des réponses simulées ; les deux essais réels confirmés par Rémi et les limites sont documentés dans [RECHERCHE-ENTREPRISES.md](docs/RECHERCHE-ENTREPRISES.md).

@@ -14,6 +14,7 @@ export type DirectoryCompany = {
   siren: string; name: string; activityCode: string | null; createdAt: string | null;
   workforce: string; workforceYear: string | null; headOffice: string | null;
   localAddress: string | null; localSiret: string | null; officialUrl: string; consultedAt: string;
+  warnings?: string[];
 };
-export type CompanySearchResult = { companies: DirectoryCompany[]; page: number; totalPages: number; totalResults: number; omitted: number; directLookup: boolean; sourceUrl: string; consultedAt: string };
+export type CompanySearchResult = { companies: DirectoryCompany[]; page: number; totalPages: number; totalResults: number; omitted: number; omittedReasons?: { duplicates: number; ineligible: number; filters: number; identity: number }; directLookup: boolean; sourceUrl: string; consultedAt: string };
 export const isDirectLookup = (q:string) => /^(\d{9}|\d{14})$/.test(q);

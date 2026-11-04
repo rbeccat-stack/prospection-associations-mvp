@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { searchSchema, companySearchUrl, searchCompanies, CompanySearchError } from "../src/lib/company-search";
+import { territories, sizes, sectors } from "../src/lib/company-search-shared";
 import { GET } from "../src/app/api/companies/search/route";
 const input=searchSchema.parse({});
 const record={siren:"901931105",siret:"90193110500018",statutDiffusionEtablissement:"O",etablissementSiege:true,uniteLegale:{etatAdministratifUniteLegale:"A",statutDiffusionUniteLegale:"O",categorieJuridiqueUniteLegale:"5710",denominationUniteLegale:"MUODIM",activitePrincipaleUniteLegale:"62.01Z",dateCreationUniteLegale:"2021-07-29",trancheEffectifsUniteLegale:"02",anneeEffectifsUniteLegale:"2022"},adresseEtablissement:{numeroVoieEtablissement:"31",typeVoieEtablissement:"RUE",libelleVoieEtablissement:"SAINT MAXIMIN",codePostalEtablissement:"69003",libelleCommuneEtablissement:"LYON"},periodesEtablissement:[{etatAdministratifEtablissement:"A",dateFin:null}]};
@@ -42,4 +43,35 @@ test("Sirene : corps HTML ou détails trop volumineux non affichés",async()=>{
  for(const r of [new Response("<html>secret</html>",{status:400,headers:{"content-type":"text/html"}}),Response.json({header:{message:"x".repeat(9000)}},{status:400})]){
   await assert.rejects(searchCompanies(input,(async()=>r) as typeof fetch),(e:unknown)=>e instanceof CompanySearchError&&e.message.includes("Aucun détail exploitable")&&!e.message.includes("secret"));
  }
+});
+
+test("Sirene : toutes les combinaisons de filtres ont une pagination bornée et ordonnée",()=>{
+ for(const territory of Object.keys(territories))for(const size of Object.keys(sizes))for(const sector of Object.keys(sectors)){
+  for(const page of [1,2,100]){
+   const query=new URL(companySearchUrl(searchSchema.parse({territory,size,sector,page}))).searchParams;
+   assert.equal(query.get("tri"),"true");assert.equal(query.get("nombre"),"10");assert.equal(query.get("debut"),String((page-1)*10));
+   assert.ok(!query.get("q")!.includes("undefined"));
+  }
+ }
+});
+test("Sirene : résultats hors géographie, secteur, effectif ou identifiant écartés",async()=>{
+ const construction={...record,uniteLegale:{...record.uniteLegale,activitePrincipaleUniteLegale:"43.99C",trancheEffectifsUniteLegale:"11"}};
+ const records=[construction,{...construction,adresseEtablissement:{...record.adresseEtablissement,codePostalEtablissement:"75001"}},{...construction,uniteLegale:{...construction.uniteLegale,activitePrincipaleUniteLegale:"62.01Z"}},{...construction,uniteLegale:{...construction.uniteLegale,trancheEffectifsUniteLegale:null}}];
+ const result=await searchCompanies({...input,territory:"rhone",sector:"F",size:"medium"},fake(records));
+ assert.equal(result.companies.length,1);assert.equal(result.omittedReasons?.filters,3);
+ assert.equal((await searchCompanies({...input,q:"111111111"},fake([record]))).companies.length,0);
+ assert.equal((await searchCompanies({...input,q:record.siret,territory:"france",sector:"F",size:"large"},fake([record]))).companies.length,1);
+});
+test("Sirene : inconnus conservés sans filtre, avertissements explicites et ND non affiché",async()=>{
+ const sparse={...record,adresseEtablissement:null,uniteLegale:{...record.uniteLegale,activitePrincipaleUniteLegale:"[ND]",dateCreationUniteLegale:null,trancheEffectifsUniteLegale:null,anneeEffectifsUniteLegale:"[ND]"}};
+ const result=await searchCompanies({...input,territory:"france"},fake([sparse]));
+ assert.equal(result.companies.length,1);const c=result.companies[0];
+ assert.equal(c.activityCode,null);assert.equal(c.createdAt,null);assert.equal(c.workforceYear,null);assert.equal(c.localAddress,null);assert.equal(c.workforce,"Effectif inconnu");assert.ok(c.warnings!.length>=4);
+ assert.equal((await searchCompanies({...input,territory:"france",size:"small"},fake([sparse]))).companies.length,0);
+});
+test("Sirene : page vide après contrôles garde l’accès aux pages suivantes et total explicite",async()=>{
+ const result=await searchCompanies(input,fake([{...record,uniteLegale:{...record.uniteLegale,categorieJuridiqueUniteLegale:"9220"}}]));
+ assert.equal(result.companies.length,0);assert.equal(result.totalResults,15);assert.equal(result.totalPages,2);assert.equal(result.omittedReasons?.ineligible,1);
+ const capped=await searchCompanies(input,(async()=>Response.json({...payload([record]),header:{total:15000,debut:0,nombre:10}})) as typeof fetch);
+ assert.equal(capped.totalResults,15000);assert.equal(capped.totalPages,100);
 });

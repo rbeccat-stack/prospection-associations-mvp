@@ -23,7 +23,7 @@ export function companySearchUrl(raw:CompanySearch) {
       clauses.push(`denominationUniteLegale:"${safe}"`);
     }
   }
-  const url=new URL(COMPANY_DIRECTORY);url.searchParams.set("q",clauses.join(" AND "));url.searchParams.set("nombre","10");url.searchParams.set("debut",String((input.page-1)*10));url.searchParams.set("date",new Date().toISOString().slice(0,10));
+  const url=new URL(COMPANY_DIRECTORY);url.searchParams.set("q",clauses.join(" AND "));url.searchParams.set("nombre","10");url.searchParams.set("debut",String((input.page-1)*10));url.searchParams.set("date",new Date().toISOString().slice(0,10));url.searchParams.set("tri","true");
   return url.toString();
 }
 export class CompanySearchError extends Error { constructor(public status:number,message:string,public retryAfter?:string){super(message);} }
@@ -67,11 +67,27 @@ export async function searchCompanies(raw:CompanySearch,fetcher:typeof fetch=fet
   if(!response.ok)throw new CompanySearchError(502,`L’API Sirene ne peut pas répondre à cette recherche (HTTP ${response.status}).`);
   let payload:z.infer<typeof responseSchema>;try{payload=responseSchema.parse(await response.json());}catch{throw new CompanySearchError(502,"La réponse de l’API Sirene est illisible ou incomplète.");}
   const seen=new Set<string>(),companies:DirectoryCompany[]=[],consultedAt=new Date().toISOString(),directLookup=isDirectLookup(input.q);
-  for(const e of payload.etablissements){const u=e.uniteLegale;const period=e.periodesEtablissement?.find(p=>!p.dateFin);if(u.etatAdministratifUniteLegale!=="A" || period?.etatAdministratifEtablissement!=="A" || !/^[1-6]\d{3}$/.test(u.categorieJuridiqueUniteLegale||"") || u.categorieJuridiqueUniteLegale==="5195" || u.identifiantAssociationUniteLegale || seen.has(e.siren))continue;
+  const omittedReasons={duplicates:0,ineligible:0,filters:0,identity:0};
+  const clean=(s:string|null|undefined)=>s&&s.trim()!=="[ND]"?s.trim()||null:null;
+  for(const e of payload.etablissements){const u=e.uniteLegale;const period=e.periodesEtablissement?.find(p=>!p.dateFin);
+    if(u.etatAdministratifUniteLegale!=="A" || period?.etatAdministratifEtablissement!=="A" || !/^[1-6]\d{3}$/.test(u.categorieJuridiqueUniteLegale||"") || u.categorieJuridiqueUniteLegale==="5195" || u.identifiantAssociationUniteLegale){omittedReasons.ineligible++;continue;}
+    if(!e.siret.startsWith(e.siren)||(directLookup&&(input.q.length===9?e.siren:e.siret)!==input.q)){omittedReasons.identity++;continue;}
+    const postcode=clean(e.adresseEtablissement?.codePostalEtablissement);
+    if(!directLookup&&((input.territory==="lyon"&&!/^6900[1-9]$/.test(postcode||""))||(input.territory==="rhone"&&!/^69\d{3}$/.test(postcode||""))||(input.sector!=="all"&&!sectorDivisions[input.sector].includes((clean(u.activitePrincipaleUniteLegale)||"").slice(0,2)))||(input.size!=="any"&&!sizes[input.size].includes(u.trancheEffectifsUniteLegale||"")))){omittedReasons.filters++;continue;}
+    if(seen.has(e.siren)){omittedReasons.duplicates++;continue;}
     const personal=u.categorieJuridiqueUniteLegale==="1000";const privateInfo=e.statutDiffusionEtablissement==="P"||u.statutDiffusionUniteLegale==="P";
-    const name=u.denominationUniteLegale || (!privateInfo&&personal?[u.prenomUsuelUniteLegale||u.prenom1UniteLegale,u.nomUniteLegale].filter(Boolean).join(" "):"");if(!name||name==="[ND]")continue;
-    seen.add(e.siren);const a=e.adresseEtablissement;const clean=(s:string|null|undefined)=>s&&s!=="[ND]"?s:null;const street=privateInfo?[]:[a?.numeroVoieEtablissement,a?.indiceRepetitionEtablissement,a?.typeVoieEtablissement,a?.libelleVoieEtablissement].map(clean).filter(Boolean);const local=[...street,clean(a?.codePostalEtablissement),clean(a?.libelleCommuneEtablissement)].filter(Boolean).join(" ")||null;
-    companies.push({siren:e.siren,name,activityCode:u.activitePrincipaleUniteLegale||null,createdAt:u.dateCreationUniteLegale||null,workforce:workforceLabels[u.trancheEffectifsUniteLegale||"NN"]||"Effectif non interprété",workforceYear:u.anneeEffectifsUniteLegale||null,headOffice:e.etablissementSiege?local:null,localAddress:local,localSiret:e.siret,officialUrl:`https://annuaire-entreprises.data.gouv.fr/entreprise/${e.siren}`,consultedAt});
+    const name=clean(u.denominationUniteLegale) || (!privateInfo&&personal?[clean(u.prenomUsuelUniteLegale)||clean(u.prenom1UniteLegale),clean(u.nomUniteLegale)].filter(Boolean).join(" "):"");if(!name){omittedReasons.identity++;continue;}
+    seen.add(e.siren);const a=e.adresseEtablissement;const street=privateInfo?[]:[a?.numeroVoieEtablissement,a?.indiceRepetitionEtablissement,a?.typeVoieEtablissement,a?.libelleVoieEtablissement].map(clean).filter(Boolean);const local=[...street,clean(a?.codePostalEtablissement),clean(a?.libelleCommuneEtablissement)].filter(Boolean).join(" ")||null;
+    const activityCode=clean(u.activitePrincipaleUniteLegale),createdAt=clean(u.dateCreationUniteLegale),workforceYear=clean(u.anneeEffectifsUniteLegale);
+    const warnings:string[]=[];
+    if(privateInfo)warnings.push("Diffusion partielle : certaines informations sont masquées.");
+    if(!local)warnings.push("Adresse non renseignée.");
+    if(!activityCode)warnings.push("Activité APE non renseignée.");
+    if(!createdAt)warnings.push("Date de création non renseignée.");
+    if(!u.trancheEffectifsUniteLegale||u.trancheEffectifsUniteLegale==="NN")warnings.push("Effectif inconnu.");
+    else if(!workforceLabels[u.trancheEffectifsUniteLegale])warnings.push("Tranche d’effectif non reconnue.");
+    else if(!workforceYear)warnings.push("Année de référence de l’effectif non renseignée.");
+    companies.push({siren:e.siren,name,activityCode,createdAt,workforce:workforceLabels[u.trancheEffectifsUniteLegale||"NN"]||"Effectif non interprété",workforceYear,headOffice:e.etablissementSiege?local:null,localAddress:local,localSiret:e.siret,officialUrl:`https://annuaire-entreprises.data.gouv.fr/entreprise/${e.siren}`,consultedAt,warnings});
   }
-  return {companies,page:input.page,totalPages:Math.min(Math.ceil(payload.header.total/10),100),totalResults:payload.header.total,omitted:payload.etablissements.length-companies.length,directLookup,sourceUrl:COMPANY_DIRECTORY,consultedAt};
+  return {companies,page:input.page,totalPages:Math.min(Math.ceil(payload.header.total/10),100),totalResults:payload.header.total,omitted:payload.etablissements.length-companies.length,omittedReasons,directLookup,sourceUrl:COMPANY_DIRECTORY,consultedAt};
 }
